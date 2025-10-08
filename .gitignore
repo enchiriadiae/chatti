@@ -1,0 +1,21 @@
+# venv & Cache
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+.pytest_cache/
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Dumps & temporär
+chatti_history_dump_*.jsonl
+*.enc
+*.tmp
+*.bak
+
+# (Nur falls versehentlich unter project angelegt)
+data/
+users/
