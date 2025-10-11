@@ -3,13 +3,8 @@
 Willkommen zum offiziellen Handbuch des **Chatti Clients**.
 Dieses Dokument erklärt alle wesentlichen Funktionen, Konzepte und Arbeitsabläufe.
 
----
-
-# 📘 Chatti Benutzerhandbuch (manuals.md)
-
-Willkommen zum offiziellen Handbuch des **Chatti Clients**.
-Dieses Dokument erklärt alle wesentlichen Funktionen, Konzepte und Arbeitsabläufe.
-
+### Hinweis: ###
+Das Dokument ist noch in der Entstehungsphase (Mid October 2025), daher noch unvollständig!
 ---
 
 ## (0) ⚙️ Ersteinrichtung & Setup
