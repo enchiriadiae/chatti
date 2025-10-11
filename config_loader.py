@@ -19,6 +19,7 @@ _EXCLUDE_FROM_USER_OVERRIDE = {
     "api_selfcheck_interval_hours",
 }
 
+
 def _is_meaningful_value(v: object) -> bool:
     """Only treat non-empty values as 'set'."""
     if v is None:
@@ -26,6 +27,7 @@ def _is_meaningful_value(v: object) -> bool:
     if isinstance(v, str):
         return bool(v.strip())
     return True  # numbers/bools/etc
+
 
 def _secure_write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -35,6 +37,7 @@ def _secure_write_text(path: Path, text: str) -> None:
         fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
+
 
 _SKELETON_USER_CONF = """# chatti.conf (per-User) – Skeleton
 # Diese Datei überschreibt zentrale Defaults NUR für diesen Benutzer.
@@ -83,6 +86,7 @@ search_case_sensitive = false
 # preload_input_history = true
 """
 
+
 def ensure_user_conf_skeleton(uid: str) -> Path:
     """
     Legt eine per-User-Konfigdatei (Skeleton) an, falls noch nicht vorhanden.
@@ -93,14 +97,17 @@ def ensure_user_conf_skeleton(uid: str) -> Path:
         _secure_write_text(cfg_path, _SKELETON_USER_CONF)
     return cfg_path
 
+
 def _quote_if_needed(v: str) -> str:
     s = v.strip()
     return s if (s and s[0] in "'\"" and s[-1] == s[0]) else f'"{s}"'
+
 
 # --------------------------------------
 # Config-Files:
 # use chatti.conf as Default, override, if User-specific *confs are found.
 # --------------------------------------
+
 
 def load_config_effective(uid: str | None = None) -> dict[str, str]:
     """
@@ -123,6 +130,7 @@ def load_config_effective(uid: str | None = None) -> dict[str, str]:
         if _is_meaningful_value(v):
             merged[k] = v
     return merged
+
 
 # --- Make a small, reusable key-val writer that can write to user or global conf ---
 def _write_kv_in_file(path: Path, key: str, value: str | None) -> None:
@@ -165,6 +173,7 @@ def _write_kv_in_file(path: Path, key: str, value: str | None) -> None:
 
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
+
 def write_conf_kv_scoped(key: str, value: str, uid: str | None = None) -> None:
     """
     Write a k=v into the active user's chatti.conf, if uid given/active;
@@ -177,7 +186,8 @@ def write_conf_kv_scoped(key: str, value: str, uid: str | None = None) -> None:
 
 
 # Erlaubt #FFF oder #FFA500 als Hex-Farbe (nicht als Kommentar behandeln)
-HEX_COLOR_RE = re.compile(r'#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\b')
+HEX_COLOR_RE = re.compile(r"#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\b")
+
 
 def _unescape(s: str) -> str:
     """
@@ -192,6 +202,7 @@ def _unescape(s: str) -> str:
         return bytes(s, "utf-8").decode("unicode_escape")
     except Exception:
         return s  # Fallback: roh zurück
+
 
 # config_loader.py
 def load_config(path: str = "chatti.conf") -> dict[str, str]:
@@ -216,6 +227,7 @@ def load_config(path: str = "chatti.conf") -> dict[str, str]:
         pass
 
     return cfg
+
 
 def strip_inline_comment(s: str) -> str:
     """
@@ -247,7 +259,8 @@ def strip_inline_comment(s: str) -> str:
         i += 1
     return s.rstrip()
 
-def as_bool(cfg: dict, key: str, default: bool=False) -> bool:
+
+def as_bool(cfg: dict, key: str, default: bool = False) -> bool:
     v = cfg.get(key, default)
     if isinstance(v, bool):
         return v
@@ -280,6 +293,7 @@ COLOR_NAME_TO_ANSI: dict[str, str] = {
     "reset": "\x1b[0m",
 }
 
+
 def normalize_color(value: str | None) -> str | None:
     """
     Nimmt entweder einen Farbnamen (z.B. 'yellow') oder bereits eine ANSI-Sequenz
@@ -303,6 +317,7 @@ def normalize_color(value: str | None) -> str | None:
         return None
     # Unbekannt -> None
     return None
+
 
 def get_color(cfg: dict[str, str], key: str, default: str | None = None) -> str | None:
     """

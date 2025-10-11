@@ -8,6 +8,7 @@ class PDFDepsMissing(RuntimeError):
 
     pass
 
+
 def _ensure_pdf_text_deps() -> None:
     try:
         import PyPDF2  # noqa: F401
@@ -18,11 +19,13 @@ def _ensure_pdf_text_deps() -> None:
             "  python -m pip install PyPDF2"
         ) from e
 
+
 def _ensure_pdf_deps() -> None:
     try:
         import pdf2image  # noqa: F401
     except Exception as e:
         raise PDFDepsMissing(explain_missing_poppler()) from e
+
 
 def explain_missing_poppler() -> str:
     """
@@ -51,6 +54,7 @@ def explain_missing_poppler() -> str:
         "\n"
         "Hinweis: Ohne Poppler gibt es nur einen Textauszug aus dem PDF (falls möglich)."
     )
+
 
 def pdf_extract_text(
     path: str | Path, max_pages: int | None = None, max_chars: int | None = None
@@ -156,7 +160,11 @@ def pdf_pages_to_dataurls(path: str | Path, max_pages: int | None = 2, dpi: int 
     # eigentliche Arbeit
     _ensure_pdf_deps()
     from pdf2image import convert_from_path
-    from pdf2image.exceptions import PDFInfoNotInstalledError, PDFPageCountError, PDFSyntaxError
+    from pdf2image.exceptions import (
+        PDFInfoNotInstalledError,
+        PDFPageCountError,
+        PDFSyntaxError,
+    )
 
     p = Path(path).expanduser().resolve()
     if not p.exists():

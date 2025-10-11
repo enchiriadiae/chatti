@@ -1,0 +1,15 @@
+# pyproject.toml
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+fix = true          # <<< HIER: fix bleibt im Top-Level
+
+[tool.ruff.lint]
+select = ["F401", "F821", "F841", "ARG", "UP"]  # <<< Lint-Regeln gehören in .lint
+# ignore = ["E501"]           # Beispiel, falls du etwas ausblenden willst
+
+# Optional: Formatter-Einstellungen (falls genutzt)
+# [tool.ruff.format]
+# quote-style = "preserve"
+# indent-style = "space"

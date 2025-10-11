@@ -18,11 +18,13 @@ _PRUNE_MARK = ".usage_prune_ts"
 _PRUNE_INTERVAL_SEC = 6 * 3600  # höchstens alle 6h kürzen
 
 API_BASE = os.getenv("OPENAI_BASE_URL", "https://api.openai.com")
-API_KEY  = os.getenv("OPENAI_API_KEY")  # Pflicht
-PROJECT  = os.getenv("OPENAI_PROJECT")  # optional, aber empfohlen bei orgs mit Projekten
+API_KEY = os.getenv("OPENAI_API_KEY")  # Pflicht
+PROJECT = os.getenv("OPENAI_PROJECT")  # optional, aber empfohlen bei orgs mit Projekten
+
 
 def _now_ts() -> int:
     return int(time.time())
+
 
 def _usage_path(uid: str | None = None) -> Path:
     u = uid or get_active_uid()
@@ -31,6 +33,7 @@ def _usage_path(uid: str | None = None) -> Path:
     d = user_data_dir(u)
     d.mkdir(parents=True, exist_ok=True)
     return d / _USAGE_FN
+
 
 def append_usage(usage: dict, uid: str | None = None) -> None:
     path = _usage_path(uid)
@@ -54,6 +57,7 @@ def append_usage(usage: dict, uid: str | None = None) -> None:
     except Exception:
         pass
 
+
 def prune_usage_log(keep_days: int | None = None, *, throttle: bool = True) -> int:
     """
     Schneidet usage.jsonl auf die letzten `keep_days` zu.
@@ -69,6 +73,7 @@ def prune_usage_log(keep_days: int | None = None, *, throttle: bool = True) -> i
         if keep_days is None:
             try:
                 from config_loader import load_config_effective
+
                 cfg = load_config_effective(uid=uid)
                 keep_days = int(cfg.get("usage_keep_days", 120) or 120)
             except Exception:
@@ -97,7 +102,10 @@ def prune_usage_log(keep_days: int | None = None, *, throttle: bool = True) -> i
 
         kept = 0
         total = 0
-        with p.open("r", encoding="utf-8") as fin, tmp.open("w", encoding="utf-8") as fout:
+        with (
+            p.open("r", encoding="utf-8") as fin,
+            tmp.open("w", encoding="utf-8") as fout,
+        ):
             for line in fin:
                 total += 1
                 try:
@@ -125,6 +133,7 @@ def prune_usage_log(keep_days: int | None = None, *, throttle: bool = True) -> i
     except Exception:
         # defensiv: niemals crasht die App nur wegen Pruning
         return 0
+
 
 def sum_month(uid: str | None = None, *, month_start_day: int = 1) -> tuple[int, int, int]:
     """
@@ -164,13 +173,15 @@ def sum_month(uid: str | None = None, *, month_start_day: int = 1) -> tuple[int,
             except Exception:
                 continue
             if int(rec.get("ts", 0) or 0) >= start_ts:
-                s_in  += int(rec.get("input_tokens", 0) or 0)
+                s_in += int(rec.get("input_tokens", 0) or 0)
                 s_out += int(rec.get("output_tokens", 0) or 0)
                 s_tot += int(rec.get("total_tokens", 0) or 0)
     return (s_in, s_out, s_tot)
 
+
 def _ymd(d: dt.date) -> str:
     return d.strftime("%Y-%m-%d")
+
 
 def fetch_usage_month_to_date(project: str | None = PROJECT) -> dict:
     """
@@ -180,12 +191,14 @@ def fetch_usage_month_to_date(project: str | None = PROJECT) -> dict:
     try:
         import requests  # noqa: F401
     except Exception as ie:
-        raise RuntimeError("Das Paket 'requests' ist nicht installiert (pip install requests).") from ie
+        raise RuntimeError(
+            "Das Paket 'requests' ist nicht installiert (pip install requests)."
+        ) from ie
 
     # 👉 ENV zur Laufzeit lesen (statt nur Modulkonstanten)
-    api_key  = os.getenv("OPENAI_API_KEY") or API_KEY
+    api_key = os.getenv("OPENAI_API_KEY") or API_KEY
     api_base = (os.getenv("OPENAI_BASE_URL") or API_BASE or "https://api.openai.com").rstrip("/")
-    proj     = project if project is not None else os.getenv("OPENAI_PROJECT") or PROJECT
+    proj = project if project is not None else os.getenv("OPENAI_PROJECT") or PROJECT
 
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY fehlt in der Umgebung.")
@@ -194,7 +207,7 @@ def fetch_usage_month_to_date(project: str | None = PROJECT) -> dict:
 
     today = dt.date.today()
     start = today.replace(day=1)
-    end   = today
+    end = today
 
     params = {"start_date": _ymd(start), "end_date": _ymd(end)}
     if proj:
@@ -203,7 +216,7 @@ def fetch_usage_month_to_date(project: str | None = PROJECT) -> dict:
     headers = {"Authorization": f"Bearer {api_key}"}
 
     try:
-        resp = requests.get(url, headers=headers, params=params, timeout=45)    #timeout in sec.
+        resp = requests.get(url, headers=headers, params=params, timeout=45)  # timeout in sec.
     except Exception as e:
         raise RuntimeError(f"Usage-API nicht erreichbar: {type(e).__name__}: {e}") from e
 
@@ -215,11 +228,18 @@ def fetch_usage_month_to_date(project: str | None = PROJECT) -> dict:
 
     data = resp.json()
 
-    total_in  = 0
+    total_in = 0
     total_out = 0
     total_tok = 0
     total_usd = 0.0
-    by_model  = defaultdict(lambda: {"input_tokens":0, "output_tokens":0, "total_tokens":0, "cost_usd":0.0})
+    by_model = defaultdict(
+        lambda: {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "cost_usd": 0.0,
+        }
+    )
 
     # möglichst generisch Liste der Items finden
     items: list = []
@@ -251,40 +271,45 @@ def fetch_usage_month_to_date(project: str | None = PROJECT) -> dict:
         else:
             cost = _num(it.get("total_cost_usd", it.get("cost_usd", it.get("cost"))))
 
-        total_in  += inp
+        total_in += inp
         total_out += out
         total_tok += tot
         total_usd += cost
 
         bm = by_model[model]
-        bm["input_tokens"]  += inp
+        bm["input_tokens"] += inp
         bm["output_tokens"] += out
-        bm["total_tokens"]  += tot
-        bm["cost_usd"]      += cost
+        bm["total_tokens"] += tot
+        bm["cost_usd"] += cost
 
     return {
         "start_date": _ymd(start),
-        "end_date":   _ymd(end),
+        "end_date": _ymd(end),
         "total": {
-            "input_tokens":  total_in,
+            "input_tokens": total_in,
             "output_tokens": total_out,
-            "total_tokens":  total_tok,
-            "cost_usd":      round(total_usd, 6),
+            "total_tokens": total_tok,
+            "cost_usd": round(total_usd, 6),
         },
         "by_model": dict(by_model),
         "raw": data,
     }
+
 
 if __name__ == "__main__":
     try:
         rep = fetch_usage_month_to_date()
         print(f"Monatsverbrauch {rep['start_date']} … {rep['end_date']}")
         t = rep["total"]
-        print(f"  Tokens: in={t['input_tokens']:,} out={t['output_tokens']:,} tot={t['total_tokens']:,}")
+        print(
+            f"  Tokens: in={t['input_tokens']:,} out={t['output_tokens']:,} tot={t['total_tokens']:,}"
+        )
         print(f"  Kosten (USD): {t['cost_usd']:.6f}")
         print("\n  pro Modell:")
         for m, v in sorted(rep["by_model"].items(), key=lambda kv: -kv[1]["total_tokens"]):
-            print(f"   - {m}: tokens={v['total_tokens']:,} (in {v['input_tokens']:,} / out {v['output_tokens']:,}), usd={v['cost_usd']:.6f}")
+            print(
+                f"   - {m}: tokens={v['total_tokens']:,} (in {v['input_tokens']:,} / out {v['output_tokens']:,}), usd={v['cost_usd']:.6f}"
+            )
     except Exception as e:
         print(f"Fehler: {e}", file=sys.stderr)
         sys.exit(1)

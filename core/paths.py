@@ -11,13 +11,14 @@ import stat
 import unicodedata
 from urllib.parse import unquote, urlparse
 
-_ZERO_WIDTH = ("\u200B", "\u200C", "\u200D", "\uFEFF")
+_ZERO_WIDTH = ("\u200b", "\u200c", "\u200d", "\ufeff")
 
 # -----------------------------
 # Basisinfos
 # -----------------------------
 HOME = pathlib.Path.home()
 SYSTEM = platform.system()  # "Windows", "Darwin", "Linux"
+
 
 # --- Helper: Projekt-Root heuristisch finden (funktioniert im Git-Clone und bei lokalem Layout) ---
 def _guess_project_root(start: pathlib.Path | None = None) -> pathlib.Path | None:
@@ -40,6 +41,7 @@ def _guess_project_root(start: pathlib.Path | None = None) -> pathlib.Path | Non
             break
         cur = cur.parent
     return None
+
 
 # -----------------------------
 # XDG-/AppData-Basis für per-user Config (X Desktop Group-Standard für Pfade)
@@ -70,9 +72,7 @@ SECRETS_FILE = CONF_DIR / "chatti-secrets.conf"
 # Öffentliche Config (sichtbar/editierbar)
 # Default: chatti.conf in CONF_DIR
 # -----------------------------
-PUBLIC_CONF = pathlib.Path(
-    os.getenv("CHATTI_PUBLIC_CONF") or (CONF_DIR / "chatti.conf")
-)
+PUBLIC_CONF = pathlib.Path(os.getenv("CHATTI_PUBLIC_CONF") or (CONF_DIR / "chatti.conf"))
 
 # -----------------------------
 # Datenverzeichnis (History, Attachments, Caches …)
@@ -94,6 +94,7 @@ DATA_DIR = pathlib.Path(
 # -----------------------------
 DOCS_DIR = DATA_DIR / "docs"
 
+
 def _ensure_dir_secure(path: pathlib.Path) -> pathlib.Path:
     if SYSTEM == "Windows":
         path.mkdir(parents=True, exist_ok=True)  # ACL erbt vom Profil
@@ -107,6 +108,7 @@ def _ensure_dir_secure(path: pathlib.Path) -> pathlib.Path:
         except Exception:
             pass
     return path
+
 
 def _init_history_file_if_missing(path: pathlib.Path) -> None:
     """
@@ -125,33 +127,43 @@ def _init_history_file_if_missing(path: pathlib.Path) -> None:
     except Exception:
         pass
 
+
 # ---------- Multi-User-Struktur ----------
 USERS_CONF_DIR = CONF_DIR / "users"
 USERS_DATA_DIR = DATA_DIR / "users"
 
+
 def user_data_dir(uid: str) -> pathlib.Path:
     return _ensure_dir_secure(USERS_DATA_DIR / uid)
+
 
 def user_history_file(uid: str) -> pathlib.Path:
     return user_data_dir(uid) / "history.jsonl"
 
+
 def user_inputs_file(uid: str) -> pathlib.Path:
     return user_data_dir(uid) / "inputs.jsonl"
+
 
 def user_cmds_file(uid: str) -> pathlib.Path:
     return user_data_dir(uid) / "commands.jsonl"
 
+
 def user_attachments_dir(uid: str) -> pathlib.Path:
     return _ensure_dir_secure(user_data_dir(uid) / "attachments")
+
 
 def user_attachments_manifest(uid: str) -> pathlib.Path:
     return user_attachments_dir(uid) / "manifest.json"
 
+
 def user_attachments_files_dir(uid: str) -> pathlib.Path:
     return _ensure_dir_secure(user_attachments_dir(uid) / "files")
 
+
 def user_support_dir(uid: str) -> pathlib.Path:
     return user_support_dir(uid) / "ticket.txt"
+
 
 # --- EINDEUTIGE Definition für User-Config (docker-freundlich) ---
 def user_conf_dir(uid: str) -> pathlib.Path:
@@ -165,8 +177,10 @@ def user_conf_dir(uid: str) -> pathlib.Path:
     base = pathlib.Path(os.getenv("CHATTI_USER_CONF_BASE", str(USERS_CONF_DIR)))
     return _ensure_dir_secure(base / uid / "conf")
 
+
 def user_conf_file(uid: str) -> pathlib.Path:
     return user_conf_dir(uid) / "chatti.conf"
+
 
 def repo_prompts_dir() -> pathlib.Path:
     """
@@ -193,15 +207,18 @@ def repo_prompts_dir() -> pathlib.Path:
     # 3) Fallback: globaler Prompt-Ordner (damit ensure_global_prompts_seed() nie crasht)
     return global_prompts_dir()
 
+
 def global_prompts_dir() -> pathlib.Path:
     """Repo-unabhängiger Ort für mitgelieferte Beispiel-Prompts."""
-    d = CONF_DIR / "docs" / "prompts"   # ~/.config/chatti-cli/docs/prompts
+    d = CONF_DIR / "docs" / "prompts"  # ~/.config/chatti-cli/docs/prompts
     return _ensure_dir_secure(d)
+
 
 def user_prompts_dir(uid: str) -> pathlib.Path:
     """Benutzerindividuelle Prompts (schreibbar)."""
     d = user_conf_dir(uid) / "prompts"  # ~/.config/chatti-cli/users/<uid>/conf/prompts
     return _ensure_dir_secure(d)
+
 
 def ensure_global_prompts_seed(copy_max: int | None = None) -> None:
     """
@@ -231,17 +248,18 @@ def ensure_global_prompts_seed(copy_max: int | None = None) -> None:
         # Onboarding darf hier nie hart crashen
         pass
 
+
 def ensure_user_prompts_initialized(uid: str, *, copy_max: int = 3) -> None:
     """
     Kopiert bis zu `copy_max` globale Beispiel-Prompts in den User-Prompts-Ordner,
     aber nur, wenn dieser Ordner noch leer ist. So hat der User sofort etwas Greifbares.
     """
     try:
-        dst = user_prompts_dir(uid)         # ~/.config/chatti-cli/users/<uid>/conf/prompts
+        dst = user_prompts_dir(uid)  # ~/.config/chatti-cli/users/<uid>/conf/prompts
         # nur wenn der Ordner leer ist → "Seed"
         if any(p.is_file() for p in dst.iterdir()):
             return
-        src = global_prompts_dir()          # ~/.config/chatti-cli/docs/prompts
+        src = global_prompts_dir()  # ~/.config/chatti-cli/docs/prompts
         if not src.exists():
             return
 
@@ -256,6 +274,7 @@ def ensure_user_prompts_initialized(uid: str, *, copy_max: int = 3) -> None:
         # bewusst still – Onboarding soll nie an Prompts scheitern
         pass
 
+
 def ensure_global_docs_dir() -> None:
     """Legt das zentrale docs/-Verzeichnis an (read-only gedacht)."""
     try:
@@ -263,10 +282,9 @@ def ensure_global_docs_dir() -> None:
     except Exception:
         pass
 
+
 # Verwaiste User-Directories löschen und aus den Secrets entfernen (nächste Methode)
-def prune_orphan_user_dirs(
-    verbose: bool = True, *, allow_when_no_secrets: bool = True
-) -> int:
+def prune_orphan_user_dirs(verbose: bool = True, *, allow_when_no_secrets: bool = True) -> int:
     """
     Entfernt alle User-Verzeichnisse in config/data, deren UID
     nicht mehr in den Secrets existiert. Gibt die Anzahl der
@@ -319,6 +337,7 @@ def prune_orphan_user_dirs(
                 print(f"⚠️  prune_orphan_user_dirs Fehler in {base}: {e}")
     return removed
 
+
 def prune_orphan_secret_entries(verbose: bool = False) -> int:
     """
     Entfernt alle user.<UID>.* Einträge aus den Secrets, für die es
@@ -339,8 +358,9 @@ def prune_orphan_secret_entries(verbose: bool = False) -> int:
 
     for raw in lines:
         line = raw.strip()
-        if not line or line.startswith(("#",";")) or "=" not in raw:
-            keep.append(raw); continue
+        if not line or line.startswith(("#", ";")) or "=" not in raw:
+            keep.append(raw)
+            continue
         key = raw.split("=", 1)[0].strip()
         if key.startswith("user.") and key.count(".") >= 2:
             uid = key.split(".", 2)[1]
@@ -360,6 +380,7 @@ def prune_orphan_secret_entries(verbose: bool = False) -> int:
 # Prompt-Suchpfade + Resolver
 # -----------------------------
 
+
 def prompt_search_paths(uid: str | None = None) -> list[pathlib.Path]:
     """
     Suchreihenfolge für Prompts:
@@ -377,11 +398,15 @@ def prompt_search_paths(uid: str | None = None) -> list[pathlib.Path]:
             seen.add(key)
 
     if uid:
-        try: add(user_prompts_dir(uid))
-        except Exception: pass
+        try:
+            add(user_prompts_dir(uid))
+        except Exception:
+            pass
 
-    try: add(global_prompts_dir())
-    except Exception: pass
+    try:
+        add(global_prompts_dir())
+    except Exception:
+        pass
 
     extra = os.getenv("CHATTI_PROMPTS_EXTRA", "").strip()
     if extra:
@@ -393,6 +418,7 @@ def prompt_search_paths(uid: str | None = None) -> list[pathlib.Path]:
             except Exception:
                 pass
     return paths
+
 
 def resolve_prompt(name: str, uid: str | None = None) -> pathlib.Path | None:
     """
@@ -457,10 +483,12 @@ def _strip_outer_quotes(s: str) -> str:
         return s[1:-1]
     return s
 
+
 def _strip_zero_width(s: str) -> str:
     for z in _ZERO_WIDTH:
         s = s.replace(z, "")
     return s
+
 
 def _unshell_escape(s: str) -> str:
     try:
@@ -471,6 +499,7 @@ def _unshell_escape(s: str) -> str:
         pass
     # Fallback: nur gängige Backslash-Escapes entschärfen
     return s.replace(r"\ ", " ").replace(r"\,", ",").replace(r"\(", "(").replace(r"\)", ")")
+
 
 # === zentrale Normalisierung von Pfadnamen
 def normalize_user_path(p: str | pathlib.Path) -> pathlib.Path:
@@ -499,9 +528,11 @@ def normalize_user_path(p: str | pathlib.Path) -> pathlib.Path:
         pass
     return pth
 
+
 def same_path(a: str | pathlib.Path, b: str | pathlib.Path) -> bool:
     """Vergleicht zwei User-Pfade robust (inkl. Unicode-Normalisierung)."""
     return normalize_user_path(a) == normalize_user_path(b)
+
 
 # ---------- Kommunikation mit User über Tickets, sofern nötig ----------
 def user_ticket_file(uid: str) -> pathlib.Path:
@@ -509,11 +540,13 @@ def user_ticket_file(uid: str) -> pathlib.Path:
     d.mkdir(parents=True, exist_ok=True)
     return d
 
+
 # --- Home-Portal: sichtbarer Ordner im Benutzer-Home mit Links zu Config/Data ---
 def _write_url_shortcut(dst: pathlib.Path, target: pathlib.Path) -> None:
     """Windows-Fallback: .url-Datei, die den Ordner/Datei im Explorer öffnet."""
     url = "file:///" + str(target).replace("\\", "/")
     dst.write_text(f"[InternetShortcut]\nURL={url}\n", encoding="utf-8")
+
 
 def _mk_link(dst: pathlib.Path, target: pathlib.Path) -> None:
     """
@@ -552,6 +585,7 @@ def _mk_link(dst: pathlib.Path, target: pathlib.Path) -> None:
         # bewusst still – nur Komfort
         pass
 
+
 def ensure_user_home_portal(uid: str, *, name: str = "Chatti") -> pathlib.Path:
     """
     Legt ~/Chatti (oder <name>) an und erzeugt darin klickbare Links zu:
@@ -561,16 +595,16 @@ def ensure_user_home_portal(uid: str, *, name: str = "Chatti") -> pathlib.Path:
       - Attachments (…/users/<uid>/attachments)
       - History.jsonl (Direktlink auf Datei)
     """
-    portal = HOME / name
+    portal = HOME / f"{name}_{uid[:8]}"
     try:
         portal.mkdir(exist_ok=True)
         # Ziele
-        cfg_dir  = user_conf_dir(uid)
+        cfg_dir = user_conf_dir(uid)
         data_dir = user_data_dir(uid)
-        sup_dir  = data_dir / "support"
+        sup_dir = data_dir / "support"
         docs_dir = DOCS_DIR
-        att_dir  = user_attachments_dir(uid)
-        hist     = user_history_file(uid)
+        att_dir = user_attachments_dir(uid)
+        hist = user_history_file(uid)
 
         # Links (oder .url auf Windows)
         _mk_link(portal / "Config", cfg_dir)
@@ -585,6 +619,7 @@ def ensure_user_home_portal(uid: str, *, name: str = "Chatti") -> pathlib.Path:
     except Exception:
         pass
     return portal
+
 
 # ---------- Verzeichnisse sicherstellen ----------
 _ensure_dir_secure(CONF_DIR)

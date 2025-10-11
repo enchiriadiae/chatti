@@ -34,6 +34,7 @@ from pathlib import Path
 
 try:
     from zxcvbn import zxcvbn
+
     _HAVE_ZXCVBN = True
 except Exception:
     _HAVE_ZXCVBN = False
@@ -42,14 +43,14 @@ except Exception:
 from getpass import getpass
 
 # from typing import Literal, Optional, List
-#from typing import Tuple
+# from typing import Tuple
 
 try:
     from cryptography.fernet import Fernet, InvalidToken
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.kdf.hkdf import HKDF
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    #from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+    # from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 except Exception as e:
     raise RuntimeError(
         "The 'cryptography' package is required for encrypted API-key storage.\n"
@@ -166,6 +167,7 @@ def _looks_sequential(s: str, min_run: int = 5) -> bool:
             run = 1
     return False
 
+
 def validate_master_password(pw: str) -> tuple[bool, str]:
     """
     Returns (ok, reason). Fast & dependency-friendly.
@@ -204,11 +206,16 @@ def validate_master_password(pw: str) -> tuple[bool, str]:
     if _looks_sequential(low) or any(k in low for k in _KEYBOARD_SEQ):
         return False, "Wirkt wie einfache Sequenz/Keyboard-Walk."
     if _char_classes(pw) < 3:
-        return False, "Bitte mind. 3 der 4 Klassen nutzen: Kleinbuchstaben, GROSSBUCHSTABEN, Ziffern, Symbole."
+        return (
+            False,
+            "Bitte mind. 3 der 4 Klassen nutzen: Kleinbuchstaben, GROSSBUCHSTABEN, Ziffern, Symbole.",
+        )
 
     return True, "OK (Basis-Checks)."
 
+
 # ---------- File I/O helpers for the secrets file ----------
+
 
 def _init_secrets_file_if_missing() -> None:
     """
@@ -228,6 +235,7 @@ def _init_secrets_file_if_missing() -> None:
     )
     _write_text(SECRETS_FILE, header + "\n")
 
+
 def _read_text(path) -> str:
     # Read a whole file as UTF-8 text. Return empty string if file does not exist.
     try:
@@ -240,6 +248,7 @@ def _write_text(path, text: str) -> None:
     # Ensure parent directory exists and write UTF-8 text atomically enough for our use.
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
 
 def write_secret_kv(key: str, value: str) -> None:
     """
@@ -370,6 +379,7 @@ def reset_secrets(mode: str = "soft") -> None:
         pass
     print(f"✓ Secrets reset (soft) written to {SECRETS_FILE}")
 
+
 # ---------- PBKDF2-based KDF & Fernet encryption helpers ----------
 def _derive_key(password: str, salt: bytes, iterations: int = 200_000) -> bytes:
     """
@@ -499,6 +509,7 @@ def get_active_user_display(master: str | None = None) -> tuple[str | None, str 
     except Exception:
         return uid, None
 
+
 def _now_iso() -> str:
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
@@ -512,6 +523,7 @@ def _norm_user(u: str) -> str:
     u = " ".join(u.split())
     # Case-insensitive Vergleich
     return u.casefold()
+
 
 def _derive_key_raw(password: str, salt: bytes, iterations: int = 200_000) -> bytes:
     # Rohes 32B-Material (ohne b64), im Gegensatz zu _derive_key()
@@ -551,6 +563,7 @@ def _users_in_file(sec: dict[str, str]) -> list[str]:
                 uids.add(parts[1])
     return sorted(uids)
 
+
 def add_user(uid_display_name: str, master_password: str, api_key: str) -> str:
     """
     Legt einen neuen Benutzer an (ein API-Key pro User).
@@ -562,7 +575,7 @@ def add_user(uid_display_name: str, master_password: str, api_key: str) -> str:
     # --- NEU: vorab prüfen, ob dies der allererste User ist ---
     pre_sec = read_secrets()
     pre_uids = _users_in_file(pre_sec)
-    is_first_user = (len(pre_uids) == 0)
+    is_first_user = len(pre_uids) == 0
 
     uid = _new_uid()
     salt = os.urandom(16)
@@ -591,12 +604,13 @@ def add_user(uid_display_name: str, master_password: str, api_key: str) -> str:
     return uid
 
 
-
 # Helper zum Verwalten der Admin-Rechte (neu als Version 0.2)
+
 
 def is_admin(uid: str) -> bool:
     sec = read_secrets()
     return str(sec.get(f"user.{uid}.is_admin", "0")).strip() in ("1", "true", "yes")
+
 
 def get_admin_uids() -> list[str]:
     sec = read_secrets()
@@ -608,11 +622,13 @@ def get_admin_uids() -> list[str]:
                 uids.add(uid)
     return sorted(uids)
 
+
 def set_admin(uid: str, value: bool) -> None:
     write_secret_kv(f"user.{uid}.is_admin", "1" if value else "0")
 
 
 # Helper zum Anlegen & Absichern der Dateien/Ordner (neu als Version 0.2)
+
 
 def _chmod_600(path: Path) -> None:
     try:
@@ -660,6 +676,7 @@ def _touch_empty(path: Path) -> None:
         else:
             _chmod_600(path)
 
+
 def _touch_user_files(uid: str) -> None:
     """
     Legt für einen neuen User die Verzeichnisstruktur & Basisdateien an:
@@ -685,7 +702,7 @@ def _touch_user_files(uid: str) -> None:
         _write_json_atomic(manifest, {"version": 1, "items": []})
 
     # Support-Ordner vorbereiten (liegt unter DATA)
-    (base / "support").mkdir(parents=True, exist_ok=True)   # 👈 base verwenden
+    (base / "support").mkdir(parents=True, exist_ok=True)  # 👈 base verwenden
     (user_data_dir(uid) / "docs").mkdir(parents=True, exist_ok=True)
 
     # Sichtbares Home-Portal anlegen / aktualisieren
@@ -696,7 +713,6 @@ def _touch_user_files(uid: str) -> None:
 
 
 def _write_json_atomic(path: Path, obj: dict) -> None:
-
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(
         "w", encoding="utf-8", delete=False, dir=str(path.parent)
@@ -710,6 +726,7 @@ def _write_json_atomic(path: Path, obj: dict) -> None:
         _set_hidden_win(path)
     else:
         _chmod_600(path)
+
 
 def load_secrets() -> dict[str, str]:
     """
@@ -725,10 +742,7 @@ def load_secrets() -> dict[str, str]:
         return {}  # Datei fehlt / leer / nur Kommentare
 
     # Multi-User: gibt es mind. einen user.<uid>.<field>?
-    has_users = any(
-        k.startswith("user.") and k.count(".") >= 2
-        for k in sec.keys()
-    )
+    has_users = any(k.startswith("user.") and k.count(".") >= 2 for k in sec.keys())
 
     # Legacy-Single-User vorhanden?
     has_legacy = bool(sec.get("api_key_enc") and sec.get("kdf_salt"))
@@ -741,10 +755,12 @@ def load_secrets() -> dict[str, str]:
     # → einfach sec zurückgeben.
     return sec
 
+
 def get_active_uid() -> str | None:
     sec = read_secrets()
     uid = (sec.get("user.active") or "").strip()
     return uid or None
+
 
 def list_users_decrypted(master_password: str) -> list[tuple[str, str]]:
     """
@@ -758,15 +774,15 @@ def list_users_decrypted(master_password: str) -> list[tuple[str, str]]:
 
     for uid in _users_in_file(sec):
         salt_b64u = sec.get(f"user.{uid}.kdf_salt")
-        name_ct   = sec.get(f"user.{uid}.username_enc")
+        name_ct = sec.get(f"user.{uid}.username_enc")
         if not (salt_b64u and name_ct):
             continue
 
         try:
             # tolerant decoden (fügt '='-Padding bei Bedarf hinzu)
             salt_bytes = _b64d_u_padded(salt_b64u)
-            base_raw   = _derive_key_raw(master_password, salt_bytes)
-            f_user     = _field_fernet(base_raw, uid, "username")
+            base_raw = _derive_key_raw(master_password, salt_bytes)
+            f_user = _field_fernet(base_raw, uid, "username")
 
             name = f_user.decrypt(name_ct.encode("utf-8")).decode("utf-8")
             out.append((uid, name))
@@ -780,6 +796,7 @@ def list_users_decrypted(master_password: str) -> list[tuple[str, str]]:
     # Schöne, deterministische Reihenfolge
     out.sort(key=lambda t: (t[1] or "").casefold())
     return out
+
 
 def remove_user_entry_by_uid(uid: str) -> None:
     """
@@ -918,17 +935,20 @@ def get_active_api_key(master_password: str) -> str | None:
         return decrypt_api_key(token, master_password, salt)
     return None
 
+
 # ==========================================================
 # Subkey für History-Crypto
 # ==========================================================
 
 _HISTORY_HKDF_INFO = b"chatti:history"
 
+
 def _b64d_u_padded(s: str) -> bytes:
     s = (s or "").strip()
     # fehlendes '='-Padding ergänzen (Base64 muss Länge % 4 == 0 haben)
     s += "=" * (-len(s) % 4)
     return base64.urlsafe_b64decode(s.encode("ascii"))
+
 
 def derive_history_key(master: str, salt_bytes: bytes) -> bytes:
     """
@@ -957,6 +977,7 @@ def derive_history_key(master: str, salt_bytes: bytes) -> bytes:
 
 ADMIN_PIN_FILE = Path.home() / ".config" / "chatti-cli" / "admin_pin.json"
 
+
 def _ensure_parents_secure(p: Path) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -964,10 +985,13 @@ def _ensure_parents_secure(p: Path) -> None:
     except Exception:
         pass
 
+
 def _write_json_atomic_secure(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     # Atomic Write
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=str(path.parent)) as tmp:
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", delete=False, dir=str(path.parent)
+    ) as tmp:
         json.dump(data, tmp, ensure_ascii=False)
         tmp.flush()
         os.fsync(tmp.fileno())
@@ -986,12 +1010,14 @@ def _write_json_atomic_secure(path: Path, data: dict) -> None:
     except Exception:
         pass
 
+
 def _read_json_or_empty(path: Path) -> dict:
     try:
         raw = path.read_text(encoding="utf-8")
         return json.loads(raw)
     except Exception:
         return {}
+
 
 def count_users_in_secrets() -> int:
     """
@@ -1004,9 +1030,11 @@ def count_users_in_secrets() -> int:
             uids.add(k.split(".", 2)[1])
     return len(uids)
 
+
 def has_any_user() -> bool:
     """True, falls mindestens ein Benutzer in den Secrets existiert."""
     return count_users_in_secrets() > 0
+
 
 def has_admin_pin() -> bool:
     """True, wenn admin_pin.json existiert und plausibel (salt/hash b64, Parameter vorhanden)."""
@@ -1025,12 +1053,15 @@ def has_admin_pin() -> bool:
         except Exception:
             return False
         # Parameter
-        n = int(data["n"]); r = int(data["r"]); p = int(data["p"])
+        n = int(data["n"])
+        r = int(data["r"])
+        p = int(data["p"])
         if n <= 0 or r <= 0 or p <= 0:
             return False
         return True
     except Exception:
         return False
+
 
 def change_admin_pin(current_pin: str, new_pin: str) -> None:
     """
@@ -1072,11 +1103,15 @@ def set_admin_pin(pin: str) -> None:
         data = {
             "salt": base64.b64encode(salt).decode("ascii"),
             "hash": base64.b64encode(h).decode("ascii"),
-            "n": 2**14, "r": 8, "p": 1, "dklen": 32,
+            "n": 2**14,
+            "r": 8,
+            "p": 1,
+            "dklen": 32,
         }
         _write_json_atomic_secure(ADMIN_PIN_FILE, data)
     except Exception as e:
         raise RuntimeError(f"Admin-PIN konnte nicht gespeichert werden: {type(e).__name__}: {e}")
+
 
 def validate_admin_secret(pw: str) -> tuple[bool, str]:
     """
@@ -1084,6 +1119,7 @@ def validate_admin_secret(pw: str) -> tuple[bool, str]:
     keine zweite, divergierende Passwortlogik pflegen.
     """
     return validate_master_password(pw)
+
 
 def verify_admin_pin(pin: str) -> bool:
     try:

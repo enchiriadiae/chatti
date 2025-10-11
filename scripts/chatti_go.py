@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import core.security as sec  # ← EIN Import, überall unten nur "sec." benutzen
+
 from config_loader import (
     as_bool,
     load_config_effective,
@@ -33,7 +34,6 @@ from core.paths import (
     prune_orphan_secret_entries,
     prune_orphan_user_dirs,
 )
-from core.security import get_active_uid
 
 
 # ---------------- Internet-Check ----------------
@@ -50,6 +50,7 @@ def check_internet(timeout: float = 2.0, retries: int = 2) -> tuple[bool, str]:
                 last_err = f"{type(e).__name__}: {e}"
         if attempt < retries:
             import time
+
             time.sleep(0.5)
 
     # HTTP-Fallback zuletzt
@@ -61,10 +62,9 @@ def check_internet(timeout: float = 2.0, retries: int = 2) -> tuple[bool, str]:
     except Exception as e:
         return False, f"{type(e).__name__}: {e} (last TCP error: {last_err})"
 
-def show_welcome() -> None:
-    from core.security import get_active_uid
 
-    cfg = load_config_effective(uid=get_active_uid())
+def show_welcome() -> None:
+    cfg = load_config_effective(uid=sec.get_active_uid())
     if not as_bool(cfg, "show_welcome", True):
         return
 
@@ -82,15 +82,18 @@ def show_welcome() -> None:
         f"🟢 {c('bold')}{c('green')}Chatti!{c('reset')} {c('green')}- Client-sided privacy out of the box! 🟢\n"
         f"Chatti! ist ein schlanker, sicherer, smarter, Text-basierter Client für OpenAI-Modelle.{c('reset')}"
     )
-    print("---> Type ./chatti -h or ./chatti -man for help.\nMD-Files in ~/chatti/docs, or visit Chattis Website for manuals.\n")
+    print(
+        "---> Type ./chatti -h or ./chatti -man for help.\nMD-Files in ~/chatti/docs, or visit Chattis Website for manuals.\n"
+    )
     print(
         f"{c('bold')}{c('cyan')}==> HINWEIS: {c('reset')}{c('cyan')}"
         f"Diese Software funktioniert nur mit einem gültigen API-Schlüssel der Firma OpenAI!{c('reset')}"
     )
     print(f"{c('cyan')}Weitere Infos & Preise unter https://www.openai.com{c('reset')}\n")
-    #print(f"{c('cyan')}https://www.openai.com{c('reset')}")
-    #print(f"{c('cyan')}https://openai.com/de-DE/api/pricing/{c('reset')}")
+    # print(f"{c('cyan')}https://www.openai.com{c('reset')}")
+    # print(f"{c('cyan')}https://openai.com/de-DE/api/pricing/{c('reset')}")
     # print("(Abschaltbar in 'chatti.conf')\n")
+
 
 # ---------------- Argumente ----------------
 def _parse_args(argv: list[str]) -> dict:
@@ -100,18 +103,18 @@ def _parse_args(argv: list[str]) -> dict:
         "doctor": False,
         "verify": False,
         "manual": False,
-        "reset": None,             # "soft" | "hard" | None
-        "collect_tickets": False,   # collect support-ticket
-        "user_add": False,         # --user-add
-        "user_list": False,        # --user-list
-        "user_use": None,          # --user-use <name|uid> | --user-use=<...>
-        "user_remove": None,       # --user-remove <name|uid> | --user-remove=<...>
-        "user_remove_hard": False, # --hard (nur mit --user-remove)
-        "user_remove_name": None,   # --user-remove-name "<Name>"
-        "user_remove_all": False,   # --all (nur sinnvoll in Kombi mit --user-remove-name)
-        "admin_set_pin": False,    # --admin-set-pin
-        "admin_change_pin": False, # --admin-change-pin
-        "_factory_reset": False     # --_factory-reset (not in public help or in public api)
+        "reset": None,  # "soft" | "hard" | None
+        "collect_tickets": False,  # collect support-ticket
+        "user_add": False,  # --user-add
+        "user_list": False,  # --user-list
+        "user_use": None,  # --user-use <name|uid> | --user-use=<...>
+        "user_remove": None,  # --user-remove <name|uid> | --user-remove=<...>
+        "user_remove_hard": False,  # --hard (nur mit --user-remove)
+        "user_remove_name": None,  # --user-remove-name "<Name>"
+        "user_remove_all": False,  # --all (nur sinnvoll in Kombi mit --user-remove-name)
+        "admin_set_pin": False,  # --admin-set-pin
+        "admin_change_pin": False,  # --admin-change-pin
+        "_factory_reset": False,  # --_factory-reset (not in public help or in public api)
     }
 
     i = 0
@@ -142,23 +145,29 @@ def _parse_args(argv: list[str]) -> dict:
         elif a == "--user-list":
             args["user_list"] = True
         elif a.startswith("--user-use="):
-            _, _, v = a.partition("="); args["user_use"] = v.strip()
+            _, _, v = a.partition("=")
+            args["user_use"] = v.strip()
         elif a == "--user-use":
             if i + 1 < len(argv) and not argv[i + 1].startswith("--"):
-                args["user_use"] = argv[i + 1].strip(); i += 1
+                args["user_use"] = argv[i + 1].strip()
+                i += 1
         elif a.startswith("--user-remove="):
-            _, _, v = a.partition("="); args["user_remove"] = v.strip()
+            _, _, v = a.partition("=")
+            args["user_remove"] = v.strip()
         elif a == "--user-remove":
             if i + 1 < len(argv) and not argv[i + 1].startswith("--"):
-                args["user_remove"] = argv[i + 1].strip(); i += 1
+                args["user_remove"] = argv[i + 1].strip()
+                i += 1
         elif a == "--hard":
             args["user_remove_hard"] = True
 
         elif a.startswith("--user-remove-name="):
-            _,_,v = a.partition("="); args["user_remove_name"] = v.strip().strip('"').strip("'")
+            _, _, v = a.partition("=")
+            args["user_remove_name"] = v.strip().strip('"').strip("'")
         elif a == "--user-remove-name":
-            if i + 1 < len(argv) and not argv[i+1].startswith("--"):
-                args["user_remove_name"] = argv[i+1].strip(); i += 1
+            if i + 1 < len(argv) and not argv[i + 1].startswith("--"):
+                args["user_remove_name"] = argv[i + 1].strip()
+                i += 1
         elif a == "--all":
             args["user_remove_all"] = True
 
@@ -177,6 +186,7 @@ def _parse_args(argv: list[str]) -> dict:
 
     return args
 
+
 # --- Help/Manual ----------------
 def _print_help() -> None:
     print("Chatti — CLI-Client\n")
@@ -184,12 +194,18 @@ def _print_help() -> None:
     print("  chatti <[--Optionen]>")
     print()
     print("Optionen:")
-    print("  --admin-set-pin            Einmalig Admin-PIN setzen (Pflicht vor sensiblen Aktionen).")
+    print(
+        "  --admin-set-pin            Einmalig Admin-PIN setzen (Pflicht vor sensiblen Aktionen)."
+    )
     print("  --admin-change-pin         Admin-PIN ändern (erfordert aktuelle PIN-Eingabe).")
     print()
-    print("  --verify                   Führe beim Start einen kurzen Smoke-Test (API-Key/Modell) aus.")
+    print(
+        "  --verify                   Führe beim Start einen kurzen Smoke-Test (API-Key/Modell) aus."
+    )
     print("  --reset-auth[=soft|hard]   Zurücksetzen gespeicherter Authentifizierungsdaten.")
-    print("                              soft = löscht Schlüssel; Neu-Einrichtung beim nächsten Start")
+    print(
+        "                              soft = löscht Schlüssel; Neu-Einrichtung beim nächsten Start"
+    )
     print("                              hard = zusätzlich lokale Caches löschen")
     print("  --doc, --doctor            Diagnose laufen lassen.")
     print("  --collect-tickets          Listet alle ticket.txt aus allen User-Verzeichnissen.")
@@ -199,7 +215,9 @@ def _print_help() -> None:
     print("  --user-list                Benutzerliste anzeigen (entschlüsselt; fragt Master).")
     print("  --user-use <Name|UID>      Aktiven Benutzer setzen (fragt Master).")
     print("  --user-remove-name '<Name|UID>' und --all (für Massenlöschung desselben Namens).")
-    print("       --hard                Zusätzlich alle Benutzerdaten löschen (History, Attachments …).")
+    print(
+        "       --hard                Zusätzlich alle Benutzerdaten löschen (History, Attachments …)."
+    )
     print()
 
 
@@ -245,16 +263,18 @@ def _confirm(prompt: str, default: bool = False) -> bool:
         return default
     return ans in ("y", "yes", "j", "ja")
 
+
 # --- Kurzer Hinweis bei fälligem API-Selfcheck (reine Terminal-Ausgabe) ---
 def _maybe_print_selfcheck_notice() -> None:
     try:
-        cfg = load_config_effective(uid=get_active_uid())
+        cfg = load_config_effective(uid=sec.get_active_uid())
         model = _preferred_model_from_conf_env()
         if _should_run_selfcheck(cfg, model):
             print("⏳ Kurzer API-Gesundheitscheck läuft …", flush=True)
     except Exception:
         # Kein Blocker beim Start, falls Config/Imports mal klemmen
         pass
+
 
 # ---------------- Main ----------------
 def main() -> int:
@@ -272,6 +292,7 @@ def main() -> int:
     if args.get("collect_tickets"):
         try:
             from core.api import collect_tickets
+
             rows = collect_tickets()
             if not rows:
                 print("Keine Tickets gefunden.")
@@ -284,9 +305,11 @@ def main() -> int:
                     print(f"     → {preview}")
             return 0
         except KeyboardInterrupt:
-            print("\n[Abgebrochen]"); return 130
+            print("\n[Abgebrochen]")
+            return 130
         except Exception as e:
-            print(f"[Setup-Fehler] {e}"); return 1
+            print(f"[Setup-Fehler] {e}")
+            return 1
 
     # --- First-run: decide Single vs Multi-user ---
     try:
@@ -309,12 +332,16 @@ def main() -> int:
                     sec.ensure_admin_pin_initialized_interactive(strict=True)
                     print("✓ Admin-PIN eingerichtet.")
                 except KeyboardInterrupt:
-                    print("\nAbgebrochen."); return 130
+                    print("\nAbgebrochen.")
+                    return 130
                 except RuntimeError as e:
-                    print(str(e)); return 1
+                    print(str(e))
+                    return 1
             else:
                 print("✓ Single-User-Modus verwendet (ohne Admin-PIN).")
-                print("➡️ Hinweis: Wenn ein weiterer Benutzer eingerichtet wird, ist die Einrichtung einer Admin-PIN obligatorisch.")
+                print(
+                    "➡️ Hinweis: Wenn ein weiterer Benutzer eingerichtet wird, ist die Einrichtung einer Admin-PIN obligatorisch."
+                )
     except Exception:
         # im Zweifel nicht blockieren
         pass
@@ -323,6 +350,7 @@ def main() -> int:
     if args.get("_factory_reset"):
         try:
             from core.api import cli_factory_reset
+
             return cli_factory_reset()
         except KeyboardInterrupt:
             print("\n[Abgebrochen]")
@@ -352,7 +380,7 @@ def main() -> int:
             return 1
 
     # --- Admin-CLI: user-add / user-remove (PIN-Pflicht je nach Zustand) ---
-    #if args.get("user_remove") is not None:
+    # if args.get("user_remove") is not None:
     if args.get("user_add") or args.get("user_remove") is not None:
         # Für --user-add: Admin-PIN erst ab dem ZWEITEN User erzwingen
         need_admin_for_add = args.get("user_add") and sec.has_any_user()
@@ -407,6 +435,7 @@ def main() -> int:
         all_matches = bool(args.get("user_remove_all"))
         try:
             from core.api import cli_user_remove_by_name
+
             cli_user_remove_by_name(name, hard=hard, all_matches=all_matches)
             return 0
         except KeyboardInterrupt:
@@ -426,6 +455,7 @@ def main() -> int:
 
     if args.get("doc") or args.get("doctor"):
         from tools.chatti_doctor import main as doctor_main
+
         return doctor_main()
 
     if args["reset"]:
@@ -446,13 +476,9 @@ def main() -> int:
     # Prompts + Docs seeden (best effort)
     try:
         ensure_global_prompts_seed()
-        ensure_global_docs_dir()   # NEU
+        ensure_global_docs_dir()  # NEU
     except Exception as e:
         print(f"⚠️ Setup-Hinweis: {type(e).__name__}: {e}")
-
-
-    except Exception as e:
-        print(f"⚠️ Prompts-Seeding übersprungen: {type(e).__name__}: {e}")
 
     # --- Ab hier normaler Start: TUI ---
     if os.getenv("CHATTI_SKIP_NETCHECK") != "1":

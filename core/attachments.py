@@ -28,26 +28,27 @@ _MAX_DATAURL_BYTES = 8 * 1024 * 1024  # 8 MiB
 
 # Kritische Typen, bei denen die Endung oft „lügt“ → Endung darf nur mit passendem Header durch
 _CRITICAL_EXT = {
-    ".pdf":  "application/pdf",
-    ".svg":  "image/svg+xml",
-    ".zip":  "application/zip",
-    ".tar":  "application/x-tar",
-    ".gz":   "application/gzip",
-    ".tgz":  "application/gzip",
-    ".bz2":  "application/x-bzip2",
-    ".xz":   "application/x-xz",
-    ".7z":   "application/x-7z-compressed",
+    ".pdf": "application/pdf",
+    ".svg": "image/svg+xml",
+    ".zip": "application/zip",
+    ".tar": "application/x-tar",
+    ".gz": "application/gzip",
+    ".tgz": "application/gzip",
+    ".bz2": "application/x-bzip2",
+    ".xz": "application/x-xz",
+    ".7z": "application/x-7z-compressed",
     ".docx": "application/zip",
     ".xlsx": "application/zip",
     ".pptx": "application/zip",
-    ".doc":  "application/x-ole-storage",
-    ".xls":  "application/x-ole-storage",
-    ".ppt":  "application/x-ole-storage",
+    ".doc": "application/x-ole-storage",
+    ".xls": "application/x-ole-storage",
+    ".ppt": "application/x-ole-storage",
 }
 
 # -------------------------------------------------------------------
 # Utilities
 # -------------------------------------------------------------------
+
 
 class AttachmentValidationError(ValueError):
     def __init__(self, path: Path, ext: str, expected: str, reason: str):
@@ -57,8 +58,10 @@ class AttachmentValidationError(ValueError):
         self.expected = expected
         self.reason = reason
 
+
 def _now_ts() -> str:
     return time.strftime("%Y-%m-%d %H:%M:%S")
+
 
 def _safe_name(name: str) -> str:
     """Konservativ: Leerzeichen→_, nur [A-Za-z0-9._-], Mehrfach-„-“ eindampfen, Endungen behalten."""
@@ -67,6 +70,7 @@ def _safe_name(name: str) -> str:
     name = re.sub(r"-{2,}", "-", name).strip("-")
     return name or "file"
 
+
 def _sha256_file(path: Path, chunk: int = 1024 * 1024) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -74,15 +78,18 @@ def _sha256_file(path: Path, chunk: int = 1024 * 1024) -> str:
             h.update(blk)
     return h.hexdigest()
 
+
 def _must_uid(uid: str | None) -> str:
     u = uid or get_active_uid()
     if not u:
         raise RuntimeError("Kein aktiver Benutzer. Nutze '--user-use' oder '--user-add'.")
     return u
 
+
 def _ensure_user_dirs(uid: str) -> None:
     user_attachments_dir(uid)
     user_attachments_files_dir(uid)
+
 
 def _load_manifest(path: Path) -> dict:
     if not path.exists():
@@ -92,10 +99,12 @@ def _load_manifest(path: Path) -> dict:
     except Exception:
         return {"version": 1, "items": []}
 
+
 def _save_manifest(path: Path, obj: dict) -> None:
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
     os.replace(tmp, path)
+
 
 def _normalize_item(it: dict, files_dir: Path) -> dict:
     out = dict(it)
@@ -107,6 +116,7 @@ def _normalize_item(it: dict, files_dir: Path) -> dict:
     fpath = files_dir / rel
     out["path"] = str(fpath)
     return out
+
 
 def _magic_mime(path: Path) -> str:
     """Kleines Sniffing ohne externe Deps (Header + ein paar Offsets)."""
@@ -137,7 +147,7 @@ def _magic_mime(path: Path) -> str:
         return "application/rtf"
 
     # OLE2/CFBF (altes MS Office)
-    if head.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"):
+    if head.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
         return "application/x-ole-storage"
 
     # ZIP (docx/xlsx/pptx, odt, epub, jar, …)
@@ -149,13 +159,13 @@ def _magic_mime(path: Path) -> str:
         return "application/x-tar"
 
     # gzip / bzip2 / xz / 7z
-    if head.startswith(b"\x1F\x8B\x08"):
+    if head.startswith(b"\x1f\x8b\x08"):
         return "application/gzip"
     if head.startswith(b"BZh"):
         return "application/x-bzip2"
-    if head.startswith(b"\xFD\x37\x7A\x58\x5A\x00"):
+    if head.startswith(b"\xfd\x37\x7a\x58\x5a\x00"):
         return "application/x-xz"
-    if head.startswith(b"\x37\x7A\xBC\xAF\x27\x1C"):
+    if head.startswith(b"\x37\x7a\xbc\xaf\x27\x1c"):
         return "application/x-7z-compressed"
 
     # Fallback: Dateiendung
@@ -179,11 +189,23 @@ def _decide_mime_and_validate(path: Path) -> tuple[str, bool, str]:
             # Verfeinerung: OpenXML
             if must == "application/zip":
                 if ext == ".docx":
-                    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document", True, "zip+docx"
+                    return (
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        True,
+                        "zip+docx",
+                    )
                 if ext == ".xlsx":
-                    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", True, "zip+xlsx"
+                    return (
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        True,
+                        "zip+xlsx",
+                    )
                 if ext == ".pptx":
-                    return "application/vnd.openxmlformats-officedocument.presentationml.presentation", True, "zip+pptx"
+                    return (
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        True,
+                        "zip+pptx",
+                    )
             # Verfeinerung: OLE-Altformate
             if must == "application/x-ole-storage":
                 if ext == ".doc":
@@ -194,7 +216,11 @@ def _decide_mime_and_validate(path: Path) -> tuple[str, bool, str]:
                     return "application/vnd.ms-powerpoint", True, "ole+ppt"
             return must, True, "magic-ok"
         # Header passt NICHT zur Endung → invalid
-        return "application/octet-stream", False, f"extension {ext} requires magic {must}"
+        return (
+            "application/octet-stream",
+            False,
+            f"extension {ext} requires magic {must}",
+        )
 
     # Nicht-kritisch: Magic gewinnt
     if magic and magic != "application/octet-stream":
@@ -212,13 +238,15 @@ def _decide_mime_and_validate(path: Path) -> tuple[str, bool, str]:
     mt, _ = mimetypes.guess_type(str(path))
     return (mt or "application/octet-stream"), True, "ext-fallback"
 
+
 # -------------------------------------------------------------------
 # Public API (Multi-User, API-kompatibel)
 # -------------------------------------------------------------------
 
+
 def list_attachments(
     kind: str | None = None,
-    _include_deleted: bool = False,   # legacy-kompatibles Flag, hat hier keine Wirkung
+    _include_deleted: bool = False,  # legacy-kompatibles Flag, hat hier keine Wirkung
     uid: str | None = None,
 ) -> list[dict[str, Any]]:
     """
@@ -234,6 +262,7 @@ def list_attachments(
     items.sort(key=lambda x: x.get("added_ts", 0), reverse=True)
     items = [_normalize_item(m, files_dir=user_attachments_files_dir(u)) for m in items]
     return items
+
 
 def add_attachment(
     src: str | Path,
@@ -281,7 +310,7 @@ def add_attachment(
         "id": sha,
         "filename": dst_path.name,
         "name": dst_path.name,
-        "mime": real_mime,           # ← jetzt korrekt gesetzt
+        "mime": real_mime,  # ← jetzt korrekt gesetzt
         "size": size,
         "sha256": sha,
         "added_ts": int(time.time()),
@@ -306,6 +335,7 @@ def add_attachment(
     mf["items"] = items
     _save_manifest(manifest_path, mf)
     return item
+
 
 def find_attachment(name_or_id: str, uid: str | None = None) -> dict[str, Any] | None:
     """
@@ -346,6 +376,7 @@ def find_attachment(name_or_id: str, uid: str | None = None) -> dict[str, Any] |
     found = _normalize_item(found, files_dir)
     return found
 
+
 def read_bytes(name_or_id: str, max_bytes: int | None = None, uid: str | None = None) -> bytes:
     meta = find_attachment(name_or_id, uid=uid)
     if not meta:
@@ -355,6 +386,7 @@ def read_bytes(name_or_id: str, max_bytes: int | None = None, uid: str | None = 
         raise FileNotFoundError(f"Attachment file missing on disk: {path}")
     with path.open("rb") as f:
         return f.read() if max_bytes is None else f.read(max_bytes)
+
 
 def purge_attachments(mode: str = "soft", uid: str | None = None) -> int:
     """
@@ -392,6 +424,7 @@ def purge_attachments(mode: str = "soft", uid: str | None = None) -> int:
     _save_manifest(manifest_path, mf)
     return count
 
+
 def to_data_url(name_or_id: str, uid: str | None = None) -> str:
     """
     data:-URL für kleine Dateien (für Inline-Bilder). Größe begrenzt.
@@ -409,9 +442,11 @@ def to_data_url(name_or_id: str, uid: str | None = None) -> str:
     b64 = base64.b64encode(raw).decode("ascii")
     return f"data:{mime};base64,{b64}"
 
+
 def pick_last_images(n: int = 4, uid: str | None = None) -> list[dict[str, Any]]:
     imgs = [m for m in list_attachments(uid=uid) if str(m.get("mime", "")).startswith("image/")]
     return imgs[:n]  # list_attachments liefert schon neueste zuerst
+
 
 # -------------------------------------------------------------------
 # OpenAI Responses parts (images)

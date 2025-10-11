@@ -98,6 +98,7 @@ from tools.chatti_doctor import main as doctor_main
 # Optional TextArea (if available in your Textual version)
 try:
     from textual.widgets import TextArea
+
     HAS_TEXTAREA = True
 except Exception:
     HAS_TEXTAREA = False
@@ -148,8 +149,8 @@ class ChattiTUI(App):
         Binding("alt+up", "history_prev", show=False, priority=True),
         Binding("alt+down", "history_next", show=False, priority=True),
         Binding("ctrl+q", "exit", show=False, priority=True),
-        Binding("ctrl+b", "boss_toggle_b", show=False, priority=True),   # the one to rely on
-        Binding("ctrl+g", "boss_toggle_g", show=False, priority=True),   # extra fallback
+        Binding("ctrl+b", "boss_toggle_b", show=False, priority=True),  # the one to rely on
+        Binding("ctrl+g", "boss_toggle_g", show=False, priority=True),  # extra fallback
     ]
 
     def __init__(self, client=None):
@@ -157,7 +158,7 @@ class ChattiTUI(App):
         self.client = client or get_client()
         self.model = get_default_model()
         self.title = f"Chatti — {self.model}"
-        #self.history = load_history()
+        # self.history = load_history()
         self.history = load_history_tail(last_n=200)
 
         self.chat_view: Log | None = None
@@ -171,11 +172,11 @@ class ChattiTUI(App):
         self._boss_mode = False
         self._squelch_output = False
         self._boss_key: str | None = None
-        self._boss_buffer  = ""
+        self._boss_buffer = ""
 
         # Quick-Pick State (für Zahlenauswahl ohne zusätzliche Widgets)
-        self._pending_choice = None    # für den Quick-Pick "Model wählen"
-        self._pick_buf = ""            # Ziffern-Puffer für die Auswahl
+        self._pending_choice = None  # für den Quick-Pick "Model wählen"
+        self._pick_buf = ""  # Ziffern-Puffer für die Auswahl
 
         # pretty output (ANSI colors); can be disabled in config
         self.pretty = True
@@ -275,7 +276,6 @@ class ChattiTUI(App):
         self._last_search_hits: list[dict] = []
         self._last_search_query: str = ""
 
-
         # Debug Only: write keys-event in widget if = true
         self.debug_keys = False
 
@@ -315,7 +315,6 @@ class ChattiTUI(App):
     #             txt = self._get_user_text()
     #             if txt and (txt.startswith(":") or txt.startswith("/")) and " " not in txt:
     #                 self._autocomplete_command()
-
 
     def _run_async(self, coro, *, exclusive: bool = False):
         self.run_worker(coro, thread=False, exclusive=exclusive)
@@ -512,7 +511,7 @@ class ChattiTUI(App):
         # 1) aktuellen Text + Caret-Position holen
         if HAS_TEXTAREA and isinstance(w, TextArea):
             full = w.text or ""
-            caret_at_end = True   # bei TextArea completen wir nur am Zeilenende
+            caret_at_end = True  # bei TextArea completen wir nur am Zeilenende
             prefix = full.strip()
             after_caret = ""
         else:
@@ -520,7 +519,7 @@ class ChattiTUI(App):
             pos = int(getattr(w, "cursor_position", len(full)) or 0)
             prefix = full[:pos].rstrip()
             after_caret = full[pos:].lstrip()
-            caret_at_end = (after_caret == "")
+            caret_at_end = after_caret == ""
 
         # Nur wenn am „Wortende“ und es wie ein Kommando aussieht
         if not caret_at_end:
@@ -560,7 +559,7 @@ class ChattiTUI(App):
         # c) exakt ein Kandidat → Rest + Space + Mini-Hilfe
         if len(cands) == 1:
             chosen = cands[0]
-            rest = chosen[len(prefix):] + " "
+            rest = chosen[len(prefix) :] + " "
             insert(rest)
             desc = commands.CMD_DESC.get(chosen)
             if desc:
@@ -568,7 +567,7 @@ class ChattiTUI(App):
             return
 
         # d) mehrere Kandidaten → Longest Common Prefix (nur vom Rest)
-        suffixes = [c[len(prefix):] for c in cands]
+        suffixes = [c[len(prefix) :] for c in cands]
 
         def lcp(strings: list[str]) -> str:
             if not strings:
@@ -626,7 +625,7 @@ class ChattiTUI(App):
         if hasattr(self.chat_view, "write_line"):
             self.chat_view.write_line(s)  # type: ignore[attr-defined]
         else:
-            self.chat_view.write(s);
+            self.chat_view.write(s)
             self.chat_view.write("\n")
 
     # In class ChattiTUI:
@@ -660,7 +659,6 @@ class ChattiTUI(App):
     def _write_wrapped(
         self, text, new_line: bool = True, color: str | None = None, bold: bool = False
     ) -> None:
-
         if getattr(self, "_squelch_output", False):
             return
 
@@ -715,7 +713,6 @@ class ChattiTUI(App):
                 self._cur_line = ""
 
     def _log_block_wrapped(self, title: str, body: str, color: str | None = None) -> None:
-
         if getattr(self, "_squelch_output", False):
             return
 
@@ -776,7 +773,9 @@ class ChattiTUI(App):
         try:
             self.history = load_history_tail(last_n=200) or []
         except Exception as e:
-            self._log_block_wrapped("History", f"Load fehlgeschlagen: {type(e).__name__}: {e}", self._YELLOW)
+            self._log_block_wrapped(
+                "History", f"Load fehlgeschlagen: {type(e).__name__}: {e}", self._YELLOW
+            )
             _finally_show_warnings()
             return
 
@@ -815,14 +814,26 @@ class ChattiTUI(App):
                 if role == "user":
                     self._write_user_message(content)
                 else:
-                    self._log_write_line(self._c(f"{self.assistant_label}:", self.chat_colour, bold=True))
+                    self._log_write_line(
+                        self._c(f"{self.assistant_label}:", self.chat_colour, bold=True)
+                    )
                     self._blank()
-                    self._write_wrapped(sec.mask_secrets(content), new_line=True, color=self.chat_colour, bold=False)
-                    self._blank(); self._blank()
+                    self._write_wrapped(
+                        sec.mask_secrets(content),
+                        new_line=True,
+                        color=self.chat_colour,
+                        bold=False,
+                    )
+                    self._blank()
+                    self._blank()
         except Exception as e:
-            self._log_block_wrapped("History", f"Konnte History nicht rendern: {type(e).__name__}: {e}", self._YELLOW)
+            self._log_block_wrapped(
+                "History",
+                f"Konnte History nicht rendern: {type(e).__name__}: {e}",
+                self._YELLOW,
+            )
 
-    # --- Admin: Ticket-Meldung ---
+        # --- Admin: Ticket-Meldung ---
         try:
             uid = sec.get_active_uid()
             if uid and sec.is_admin(uid):
@@ -841,7 +852,11 @@ class ChattiTUI(App):
                         color=self._CYAN,
                     )
         except Exception as e:
-            self._log_block_wrapped("Support-Anfragen", f"Fehler: {type(e).__name__}: {e}", color=self._YELLOW)
+            self._log_block_wrapped(
+                "Support-Anfragen",
+                f"Fehler: {type(e).__name__}: {e}",
+                color=self._YELLOW,
+            )
 
         _finally_show_warnings()
 
@@ -901,7 +916,9 @@ class ChattiTUI(App):
 
             with Horizontal(id="controls"):
                 if HAS_TEXTAREA:
-                    self.input = TextArea(placeholder="Frag mich [TAB-ENTER zum Senden...]", id="input")
+                    self.input = TextArea(
+                        placeholder="Frag mich [TAB-ENTER zum Senden...]", id="input"
+                    )
                 else:
                     self.input = Input(placeholder="Frag mich...", id="input")
 
@@ -929,7 +946,7 @@ class ChattiTUI(App):
             cfg = load_config_effective(uid=uid)
 
             self.boss_passcode = (cfg.get("boss_passcode") or "").strip()
-            self.boss_strict = bool(self.boss_passcode)   # nur wenn gesetzt → strict
+            self.boss_strict = bool(self.boss_passcode)  # nur wenn gesetzt → strict
             self._boss_buffer = ""
         except Exception:
             self.boss_passcode = ""
@@ -939,7 +956,7 @@ class ChattiTUI(App):
         self.call_after_refresh(self._render_history_on_start)
 
         # Modelle asynchron nachladen und Select auffüllen
-        #self._run_async(self._run_doctor_worker(), exclusive=False)
+        # self._run_async(self._run_doctor_worker(), exclusive=False)
 
     # ---------------------------------------------------------------------
     # Events
@@ -968,8 +985,11 @@ class ChattiTUI(App):
             self._log_block_wrapped("Model", f"✓ Modell gesetzt: {value}", color=self._GREEN)
 
         except Exception as e:
-            self._log_block_wrapped("Model", f"✖ Konnte Modell nicht setzen: {type(e).__name__}: {e}", color=self._YELLOW)
-
+            self._log_block_wrapped(
+                "Model",
+                f"✖ Konnte Modell nicht setzen: {type(e).__name__}: {e}",
+                color=self._YELLOW,
+            )
 
     @on(Button.Pressed, "#btn_clear")
     def clear_pressed(self) -> None:
@@ -1005,7 +1025,7 @@ class ChattiTUI(App):
 
         # Einschalten
         if not self._boss_mode:
-            self._boss_buffer = ""                 # Buffer leeren
+            self._boss_buffer = ""  # Buffer leeren
             self._boss_key = trig if self.boss_strict else None
             self._toggle_boss_mode()
             return
@@ -1013,7 +1033,9 @@ class ChattiTUI(App):
         # Wenn Passcode definiert → KEIN Toggle über Tastenkombi, nur via Keystrokes
         if self.boss_passcode:
             # Optional: kurzes Feedback
-            self._log_block_wrapped("Boss-Mode", "Passcode tippen zum Entsperren.", color=self._YELLOW)
+            self._log_block_wrapped(
+                "Boss-Mode", "Passcode tippen zum Entsperren.", color=self._YELLOW
+            )
             return
 
         # Kein Passcode → normales Toggle
@@ -1030,10 +1052,10 @@ class ChattiTUI(App):
 
         # --- Quick-Pick für _pending_choice: "Model wählen" ---
         if self._pending_choice and self._pending_choice.get("title") == "Model wählen":
-            k   = getattr(event, "key", "") or ""
-            ch  = getattr(event, "character", "") or ""
+            k = getattr(event, "key", "") or ""
+            ch = getattr(event, "character", "") or ""
             ctrl = bool(getattr(event, "ctrl", False))
-            alt  = bool(getattr(event, "alt", False))
+            alt = bool(getattr(event, "alt", False))
             meta = bool(getattr(event, "meta", False))
 
             options = self._pending_choice.get("options") or []
@@ -1043,9 +1065,13 @@ class ChattiTUI(App):
             def _apply_and_cleanup(idx1: int) -> None:
                 try:
                     if callable(on_select):
-                        on_select(idx1 - 1)   # 0-basiert
+                        on_select(idx1 - 1)  # 0-basiert
                 except Exception as e:
-                    self._log_block_wrapped("Model", f"Fehler beim Setzen: {type(e).__name__}: {e}", color=self._YELLOW)
+                    self._log_block_wrapped(
+                        "Model",
+                        f"Fehler beim Setzen: {type(e).__name__}: {e}",
+                        color=self._YELLOW,
+                    )
                 finally:
                     self._pick_buf = ""
                     self._pending_choice = None
@@ -1055,7 +1081,8 @@ class ChattiTUI(App):
                 self._pick_buf = ""
                 self._pending_choice = None
                 self._log_block_wrapped("Model", "Abgebrochen.", color=self._YELLOW)
-                event.prevent_default(); event.stop()
+                event.prevent_default()
+                event.stop()
                 return
 
             # Hilfsfunktion: Ziffern auch vom Numpad erkennen
@@ -1066,7 +1093,7 @@ class ChattiTUI(App):
                     return key
                 for prefix in ("numpad_", "numpad", "kp"):
                     if key.startswith(prefix):
-                        tail = key[len(prefix):]
+                        tail = key[len(prefix) :]
                         if tail and tail[0].isdigit():
                             return tail[0]
                 return None
@@ -1086,32 +1113,42 @@ class ChattiTUI(App):
                     decisive = (maxn < 10 and len(buf) == 1) or (len(buf) == 2)
                     if decisive and 1 <= idx <= maxn:
                         _apply_and_cleanup(idx)
-                        event.prevent_default(); event.stop()
+                        event.prevent_default()
+                        event.stop()
                         return
 
-                event.prevent_default(); event.stop()
+                event.prevent_default()
+                event.stop()
                 return
 
             # Backspace → letzte Ziffer löschen
             if k == "backspace":
                 self._pick_buf = self._pick_buf[:-1]
-                event.prevent_default(); event.stop()
+                event.prevent_default()
+                event.stop()
                 return
 
             # Enter/Return/Space/Tab → Auswahl (falls möglich) anwenden
             if k in ("enter", "return", "space") or ch in ("\r", "\n", " "):
                 buf = self._pick_buf
                 if not buf or not buf.isdigit():
-                    self._log_block_wrapped("Model", "Bitte zuerst Nummer tippen.", color=self._YELLOW)
-                    event.prevent_default(); event.stop()
+                    self._log_block_wrapped(
+                        "Model", "Bitte zuerst Nummer tippen.", color=self._YELLOW
+                    )
+                    event.prevent_default()
+                    event.stop()
                     return
                 idx = int(buf)
                 if not (1 <= idx <= maxn):
-                    self._log_block_wrapped("Model", f"Ungültige Nummer (1..{maxn}).", color=self._YELLOW)
-                    event.prevent_default(); event.stop()
+                    self._log_block_wrapped(
+                        "Model", f"Ungültige Nummer (1..{maxn}).", color=self._YELLOW
+                    )
+                    event.prevent_default()
+                    event.stop()
                     return
                 _apply_and_cleanup(idx)
-                event.prevent_default(); event.stop()
+                event.prevent_default()
+                event.stop()
                 return
 
             # TAB / Shift+TAB → durchlassen (kein prevent_default), damit Fokus wechselt
@@ -1119,19 +1156,18 @@ class ChattiTUI(App):
                 # nichts tun: Fokuswechsel soll stattfinden
                 return
 
-    # --- Ende Quick-Pick "Model wählen" ---
+        # --- Ende Quick-Pick "Model wählen" ---
 
-
-    # --- Boss-Mode Keystroke-Exit ---
+        # --- Boss-Mode Keystroke-Exit ---
         if self._boss_mode and self.boss_passcode:
-            ch  = getattr(event, "character", "") or ""
+            ch = getattr(event, "character", "") or ""
             ctrl = bool(getattr(event, "ctrl", False))
-            alt  = bool(getattr(event, "alt", False))
+            alt = bool(getattr(event, "alt", False))
             meta = bool(getattr(event, "meta", False))
 
             # nur „einfache“ druckbare Zeichen berücksichtigen
             if ch and len(ch) == 1 and not (ctrl or alt or meta):
-                self._boss_buffer = (self._boss_buffer + ch)[-len(self.boss_passcode):]
+                self._boss_buffer = (self._boss_buffer + ch)[-len(self.boss_passcode) :]
                 if self._boss_buffer == self.boss_passcode:
                     # richtiger Code getippt → Boss-Mode beenden
                     try:
@@ -1146,16 +1182,17 @@ class ChattiTUI(App):
                     except Exception:
                         pass
                     self._ui(self._refresh_title_bar)
-                    event.prevent_default(); event.stop()
+                    event.prevent_default()
+                    event.stop()
                     return
 
             # optional: mit ESC den Buffer leeren
             if getattr(event, "key", "") == "escape":
                 self._boss_buffer = ""
-                event.prevent_default(); event.stop()
+                event.prevent_default()
+                event.stop()
                 return
         # --- Ende Boss-Mode Keystroke-Exit ---
-
 
         # --- robuste Erkennung für Ctrl+F ---
         k = getattr(event, "key", "")
@@ -1170,7 +1207,8 @@ class ChattiTUI(App):
 
         if self.mode == "search" and self.focused is self.input:
             if event.key == "enter":
-                event.prevent_default(); event.stop()
+                event.prevent_default()
+                event.stop()
                 q = (self._get_user_text() or "").strip()
                 if not q:
                     self._clear_input()
@@ -1196,8 +1234,10 @@ class ChattiTUI(App):
                 # Allgemeine Kommandos (beginnend mit ':' oder '/'): an _handle_text delegieren
                 if q.startswith(":") or q.startswith("/"):
                     # optional: History als Command speichern
-                    try: self._history_push(q, kind="cmd")
-                    except Exception: pass
+                    try:
+                        self._history_push(q, kind="cmd")
+                    except Exception:
+                        pass
                     self._handle_text(q)
                     self._clear_input()
                     self.set_focus(self.input)
@@ -1205,18 +1245,16 @@ class ChattiTUI(App):
                 # --- Ende NEU ---
 
                 # Normale Suche
-                try: self._history_push(q, kind="search")
-                except Exception: pass
+                try:
+                    self._history_push(q, kind="search")
+                except Exception:
+                    pass
                 self._do_search(q)
                 self._clear_input()
                 self.set_focus(self.input)
                 self._hist_pos = None
                 self._hist_draft = ""
                 return
-
-
-
-
 
             # if event.key == "enter":
             #     event.prevent_default(); event.stop()
@@ -1231,7 +1269,8 @@ class ChattiTUI(App):
             #     self.set_focus(self.input)
             #     return
             if event.key == "escape":
-                event.prevent_default(); event.stop()
+                event.prevent_default()
+                event.stop()
                 self._exit_search_mode()
                 return
 
@@ -1240,19 +1279,21 @@ class ChattiTUI(App):
             mods = set(getattr(event, "modifiers", ()))
             is_shift = "shift" in mods
 
-#             key = getattr(event, "key", "")
-#             is_shift = bool(getattr(event, "shift", False))
+            #             key = getattr(event, "key", "")
+            #             is_shift = bool(getattr(event, "shift", False))
 
             if HAS_TEXTAREA and isinstance(self.input, TextArea):
                 # TextArea:
                 #   Enter          → senden
                 #   Shift+Enter    → neue Zeile
                 if key == "enter" and not is_shift:
-                    event.prevent_default(); event.stop()
+                    event.prevent_default()
+                    event.stop()
                     self._handle_text(self._consume_input())
                     return
                 if key == "enter" and is_shift:
-                    event.prevent_default(); event.stop()
+                    event.prevent_default()
+                    event.stop()
                     # TextArea hat meist insert(); fallback auf text-Append
                     if hasattr(self.input, "insert"):
                         self.input.insert("\n")
@@ -1264,11 +1305,13 @@ class ChattiTUI(App):
                 #   Enter          → senden
                 #   Shift+Enter    → neue Zeile einfügen
                 if key == "enter" and is_shift:
-                    event.prevent_default(); event.stop()
+                    event.prevent_default()
+                    event.stop()
                     self.input.value = (self.input.value or "") + "\n"
                     return
                 if key == "enter":
-                    event.prevent_default(); event.stop()
+                    event.prevent_default()
+                    event.stop()
                     self._handle_text(self._consume_input())
                     return
 
@@ -1301,7 +1344,9 @@ class ChattiTUI(App):
     # ---------------------------------------------------------------------
     # Handle Attachments
     # ---------------------------------------------------------------------
-    def _plural_word(self, n: int, singular: str, plural: str | None = None, zero: str | None = None) -> str:
+    def _plural_word(
+        self, n: int, singular: str, plural: str | None = None, zero: str | None = None
+    ) -> str:
         """
         Gibt für n das passende Wort zurück.
         - singular: "Datei"
@@ -1315,10 +1360,10 @@ class ChattiTUI(App):
         if plural is not None:
             return plural
         if singular.endswith("e"):
-            return singular + "n"      # Karte -> Karten
+            return singular + "n"  # Karte -> Karten
         if singular.endswith("s"):
-            return singular            # Logs -> Logs
-        return singular + "en"         # Datei -> Dateien (Fallback)
+            return singular  # Logs -> Logs
+        return singular + "en"  # Datei -> Dateien (Fallback)
 
     def _fmt_count(self, n, singular, plural=None, zero=None):
         if n == 0 and zero is not None:
@@ -1365,11 +1410,17 @@ class ChattiTUI(App):
         while i < len(tokens):
             tok = tokens[i]
             if tok == "--tag" and i + 1 < len(tokens):
-                tags.append(tokens[i + 1]); i += 2; continue
+                tags.append(tokens[i + 1])
+                i += 2
+                continue
             if tok == "--note" and i + 1 < len(tokens):
-                note = tokens[i + 1]; i += 2; continue
+                note = tokens[i + 1]
+                i += 2
+                continue
             if tok == "--alias" and i + 1 < len(tokens):
-                alias = tokens[i + 1]; i += 2; continue
+                alias = tokens[i + 1]
+                i += 2
+                continue
             i += 1  # unbekanntes Flag ignorieren
 
         # 3) alle hinzufügen (pro Pfad ein Eintrag)
@@ -1385,9 +1436,9 @@ class ChattiTUI(App):
                 self.attach_queue.append(meta["id"])
                 added_count += 1
                 line = [
-                    f"✅ {meta.get('name','?')}  (id: {meta.get('id','?')})",
-                    f"   MIME: {meta.get('mime','?')}  Größe: {meta.get('size',0)} B  "
-                    f"SHA-256: {str(meta.get('sha256',''))[:16]}…",
+                    f"✅ {meta.get('name', '?')}  (id: {meta.get('id', '?')})",
+                    f"   MIME: {meta.get('mime', '?')}  Größe: {meta.get('size', 0)} B  "
+                    f"SHA-256: {str(meta.get('sha256', ''))[:16]}…",
                 ]
                 if meta.get("tags"):
                     line.append("   Tags: " + ", ".join(meta["tags"]))
@@ -1413,7 +1464,7 @@ class ChattiTUI(App):
             "\n→ Nichts angeheftet."
             if added_count == 0
             else f"\n→ Für die nächste Nachricht {added_count} {einheiten} angeheftet. "
-                 f"(Gesamt in Queue: {len(self.attach_queue)})"
+            f"(Gesamt in Queue: {len(self.attach_queue)})"
         )
 
         if error_count == 0 and added_count > 0:
@@ -1424,7 +1475,6 @@ class ChattiTUI(App):
             title = "Attach/Add (Fehler)"
 
         self._log_block_wrapped(title, "\n\n".join(added_lines) + footer)
-
 
     def _cmd_attach_list(self, args: str) -> None:
         q = (args or "").strip().lower()
@@ -1465,7 +1515,8 @@ class ChattiTUI(App):
         n = len(self.attach_queue)
         self.attach_queue.clear()
         self._log_block_wrapped(
-            "Attach/Clear", f"{n} Anhang/Anhänge aus der Queue entfernt (Dateien nicht gelöscht)."
+            "Attach/Clear",
+            f"{n} Anhang/Anhänge aus der Queue entfernt (Dateien nicht gelöscht).",
         )
 
     def _cmd_attach_purge(self, args: str, force: bool) -> None:
@@ -1509,7 +1560,8 @@ class ChattiTUI(App):
                 self.attach_queue.append(aid)
                 added += 1
         self._log_block_wrapped(
-            "Attach/Use", f"{added} Anhang/Anhänge angeheftet. (Gesamt: {len(self.attach_queue)})"
+            "Attach/Use",
+            f"{added} Anhang/Anhänge angeheftet. (Gesamt: {len(self.attach_queue)})",
         )
 
     def _cmd_attach_unuse(self, args: str) -> None:
@@ -1527,16 +1579,20 @@ class ChattiTUI(App):
         self.attach_queue = [x for x in self.attach_queue if x not in ids]
         removed = before - len(self.attach_queue)
         self._log_block_wrapped(
-            "Attach/Unuse", f"{removed} entfernt. (Verbleibend: {len(self.attach_queue)})"
+            "Attach/Unuse",
+            f"{removed} entfernt. (Verbleibend: {len(self.attach_queue)})",
         )
-
 
     def _cmd_goto(self, args: str) -> None:
         """Springt im Suchmodus zu einem der letzten Suchtreffer: :goto N oder :N"""
         # Vorbedingung: Treffer vorhanden?
         hits = getattr(self, "_last_search_hits", None) or []
         if not hits:
-            self._log_block_wrapped("🔎 Suche", "Kein Suchergebnis im Speicher. Erst suchen, dann :goto N.", self._YELLOW)
+            self._log_block_wrapped(
+                "🔎 Suche",
+                "Kein Suchergebnis im Speicher. Erst suchen, dann :goto N.",
+                self._YELLOW,
+            )
             return
 
         n_str = (args or "").strip()
@@ -1552,7 +1608,11 @@ class ChattiTUI(App):
         hit = hits[n - 1]
         idx = hit.get("idx", -1)
         if idx < 0:
-            self._log_block_wrapped("🔎 Suche", "Interner Treffer ohne Index – kann nicht springen.", self._YELLOW)
+            self._log_block_wrapped(
+                "🔎 Suche",
+                "Interner Treffer ohne Index – kann nicht springen.",
+                self._YELLOW,
+            )
             return
 
         # komplette History laden & Item + Kontext rendern
@@ -1560,16 +1620,20 @@ class ChattiTUI(App):
             uid = sec.get_active_uid()
             hist = load_history(uid=uid)
         except Exception as e:
-            self._log_block_wrapped("🔎 Suche", f"History-Ladefehler: {type(e).__name__}: {e}", self._YELLOW)
+            self._log_block_wrapped(
+                "🔎 Suche", f"History-Ladefehler: {type(e).__name__}: {e}", self._YELLOW
+            )
             return
 
         if not (0 <= idx < len(hist)):
-            self._log_block_wrapped("🔎 Suche", "Trefferindex außerhalb des Bereichs.", self._YELLOW)
+            self._log_block_wrapped(
+                "🔎 Suche", "Trefferindex außerhalb des Bereichs.", self._YELLOW
+            )
             return
 
-        cur  = hist[idx]
+        cur = hist[idx]
         prev = hist[idx - 1] if idx > 0 else None
-        nxt  = hist[idx + 1] if idx + 1 < len(hist) else None
+        nxt = hist[idx + 1] if idx + 1 < len(hist) else None
 
         # Zeitformat hübsch
         def _fmt_ts(ts: str) -> str:
@@ -1584,13 +1648,19 @@ class ChattiTUI(App):
 
         blocks = []
         if prev:
-            blocks.append(f"[dim]{_fmt_ts(prev.get('ts',''))}  {prev.get('role','')}>[/dim]\n{prev.get('content','')}")
-        blocks.append(f"[b]{_fmt_ts(cur.get('ts',''))}  {cur.get('role','')}>[/b]\n{cur.get('content','')}")
+            blocks.append(
+                f"[dim]{_fmt_ts(prev.get('ts', ''))}  {prev.get('role', '')}>[/dim]\n{prev.get('content', '')}"
+            )
+        blocks.append(
+            f"[b]{_fmt_ts(cur.get('ts', ''))}  {cur.get('role', '')}>[/b]\n{cur.get('content', '')}"
+        )
         if nxt:
-            blocks.append(f"[dim]{_fmt_ts(nxt.get('ts',''))}  {nxt.get('role','')}>[/dim]\n{nxt.get('content','')}")
+            blocks.append(
+                f"[dim]{_fmt_ts(nxt.get('ts', ''))}  {nxt.get('role', '')}>[/dim]\n{nxt.get('content', '')}"
+            )
 
-        #head = f"🔎 Treffer {n}/{len(hits)} – „{getattr(self, '_last_search_query', '')}“"
-        #self._log_block_wrapped(head, "\n\n".join(blocks), self.search_colour)
+        # head = f"🔎 Treffer {n}/{len(hits)} – „{getattr(self, '_last_search_query', '')}“"
+        # self._log_block_wrapped(head, "\n\n".join(blocks), self.search_colour)
 
         head = f"🔎 Treffer {n}/{len(hits)} – „{getattr(self, '_last_search_query', '')}“"
 
@@ -1611,9 +1681,9 @@ class ChattiTUI(App):
         try:
             if getattr(self, "chat_view", None):
                 if hasattr(self.chat_view, "scroll_end"):
-                    self.chat_view.scroll_end(animate=False)      # Textual Log
+                    self.chat_view.scroll_end(animate=False)  # Textual Log
                 elif hasattr(self.chat_view, "scroll_to_end"):
-                    self.chat_view.scroll_to_end()                 # Fallback ältere Varianten
+                    self.chat_view.scroll_to_end()  # Fallback ältere Varianten
         except Exception:
             pass
 
@@ -1622,9 +1692,6 @@ class ChattiTUI(App):
             self.set_focus(self.input)
         except Exception:
             pass
-
-
-
 
     def _cmd_usage(self, args: str) -> None:
         """
@@ -1674,10 +1741,12 @@ class ChattiTUI(App):
                     lines.append("  pro Modell:")
                     bym = rep["by_model"]
                     # sortiert nach total_tokens absteigend
-                    for m, v in sorted(bym.items(), key=lambda kv: -int(kv[1].get("total_tokens", 0))):
+                    for m, v in sorted(
+                        bym.items(), key=lambda kv: -int(kv[1].get("total_tokens", 0))
+                    ):
                         lines.append(
-                            f"   - {m}: tokens={int(v.get('total_tokens',0)):,} "
-                            f"(in {int(v.get('input_tokens',0)):,} / out {int(v.get('output_tokens',0)):,})"
+                            f"   - {m}: tokens={int(v.get('total_tokens', 0)):,} "
+                            f"(in {int(v.get('input_tokens', 0)):,} / out {int(v.get('output_tokens', 0)):,})"
                         )
             except Exception as e:
                 lines.append(f"Remote (OpenAI) nicht verfügbar: {type(e).__name__}: {e}")
@@ -1754,9 +1823,6 @@ class ChattiTUI(App):
                 color=self._YELLOW,
             )
 
-
-
-
     async def _remove_my_account_async(self) -> None:
         """Löscht den aktiven Benutzer *hart* (non-interactive): Secrets + Dateien.
         Fragt nur das Master-Passwort ab, KEIN 'LÖSCHEN'-Text nötig.
@@ -1767,7 +1833,9 @@ class ChattiTUI(App):
             return
 
         # 1) Master-Passwort abfragen & prüfen
-        master = await self._ask_secret("Konto löschen", "Master-Passwort zur Bestätigung eingeben:")
+        master = await self._ask_secret(
+            "Konto löschen", "Master-Passwort zur Bestätigung eingeben:"
+        )
         if not master:
             self._log_block_wrapped("Konto löschen", "Abgebrochen.", color=self._YELLOW)
             return
@@ -1776,7 +1844,9 @@ class ChattiTUI(App):
             # Validiert das Master-Passwort (wirft Exception bei Fehler)
             _ = sec.get_api_key_by_uid(uid, master)
         except Exception:
-            self._log_block_wrapped("Konto löschen", "✖ Master-Passwort falsch.", color=self._YELLOW)
+            self._log_block_wrapped(
+                "Konto löschen", "✖ Master-Passwort falsch.", color=self._YELLOW
+            )
             return
 
         # 2) Harte Löschung ohne weitere Prompts – im Thread, damit UI responsiv bleibt
@@ -1791,7 +1861,11 @@ class ChattiTUI(App):
                 color=self._GREEN,
             )
         except Exception as e:
-            self._log_block_wrapped("Konto löschen", f"Fehler beim Entfernen: {type(e).__name__}: {e}", color=self._YELLOW)
+            self._log_block_wrapped(
+                "Konto löschen",
+                f"Fehler beim Entfernen: {type(e).__name__}: {e}",
+                color=self._YELLOW,
+            )
             return
 
         # 3) Sauber beenden: erst Shell-Abschied *registrieren*, dann Worker canceln, dann exit
@@ -1808,6 +1882,7 @@ class ChattiTUI(App):
                         os.write(1, msg.encode("utf-8", "ignore"))
                 except Exception:
                     pass
+
             self._squelch_output = True
             atexit.register(_farewell)
 
@@ -1829,16 +1904,11 @@ class ChattiTUI(App):
             # 3c) App schließen (beendet verbleibende Worker ohnehin)
             self.exit()
 
-
-
-
-
-
     async def _ask_secret(self, title: str, prompt: str) -> str | None:
         dlg = SecretPrompt(title, prompt or "")
-        self.push_screen(dlg)              # <— kein wait_for_dismiss, daher kein Worker nötig
+        self.push_screen(dlg)  # <— kein wait_for_dismiss, daher kein Worker nötig
         try:
-            return await dlg.dismissed     # <— Future des Screens abwarten
+            return await dlg.dismissed  # <— Future des Screens abwarten
         finally:
             self._ui(self._refocus_input)
 
@@ -1910,7 +1980,6 @@ class ChattiTUI(App):
         self._run_async(self._cmd_history_dump_async(args, mode), exclusive=False)
 
     async def _cmd_history_dump_async(self, args: str, mode: str = "enc") -> None:
-
         uid = sec.get_active_uid()
         if not uid:
             self._log_block_wrapped("History", "Kein aktiver Benutzer.", color=self._YELLOW)
@@ -1940,7 +2009,7 @@ class ChattiTUI(App):
             # Einmalige Master-Bestätigung; wird zugleich als Dump-Schlüssel verwendet
             master = await self._ask_secret(
                 "History-Export (verschlüsselt)",
-                "Zur Bestätigung Master-Passwort eingeben (wird als Dump-Schlüssel genutzt):"
+                "Zur Bestätigung Master-Passwort eingeben (wird als Dump-Schlüssel genutzt):",
             )
             if master is None or master == "":
                 self._log_block_wrapped("History", "Abgebrochen.", color=self._YELLOW)
@@ -1948,14 +2017,18 @@ class ChattiTUI(App):
             try:
                 _ = sec.get_api_key_by_uid(uid, master)
             except Exception:
-                self._log_block_wrapped("History", "✖ Master-Passwort falsch – Export abgebrochen.", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "History",
+                    "✖ Master-Passwort falsch – Export abgebrochen.",
+                    color=self._YELLOW,
+                )
                 return
             dump_kwargs["passphrase"] = master
 
         elif mode == "plain":
             master = await self._ask_secret(
                 "History-Export (Klartext)",
-                "Zur Bestätigung Master-Passwort eingeben (Export erfolgt unverschlüsselt!):"
+                "Zur Bestätigung Master-Passwort eingeben (Export erfolgt unverschlüsselt!):",
             )
             if master is None or master == "":
                 self._log_block_wrapped("History", "Abgebrochen.", color=self._YELLOW)
@@ -1963,7 +2036,11 @@ class ChattiTUI(App):
             try:
                 _ = sec.get_api_key_by_uid(uid, master)
             except Exception:
-                self._log_block_wrapped("History", "✖ Master-Passwort falsch – Klartext-Export abgebrochen.", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "History",
+                    "✖ Master-Passwort falsch – Klartext-Export abgebrochen.",
+                    color=self._YELLOW,
+                )
                 return
             # auch im Plain-Modus die Passphrase mitgeben (für Konsistenz)
             dump_kwargs["passphrase"] = master
@@ -1983,9 +2060,11 @@ class ChattiTUI(App):
             self._log_block_wrapped("History", msg, color=self._GREEN)
 
         except Exception as e:
-            self._log_block_wrapped("History", f"Fehler beim Export: {type(e).__name__}: {e}", color=self._YELLOW)
-
-
+            self._log_block_wrapped(
+                "History",
+                f"Fehler beim Export: {type(e).__name__}: {e}",
+                color=self._YELLOW,
+            )
 
     async def _cmd_history_import_view(self, args: str) -> None:
         """
@@ -1998,7 +2077,11 @@ class ChattiTUI(App):
             try:
                 toks = shlex.split((args or "").strip())
             except ValueError as e:
-                self._log_block_wrapped("history-import-view", f"Argumente unklar (Quotes?): {e}", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "history-import-view",
+                    f"Argumente unklar (Quotes?): {e}",
+                    color=self._YELLOW,
+                )
                 return
 
             if not toks:
@@ -2023,14 +2106,20 @@ class ChattiTUI(App):
             # Pfad ist erstes Token
             src = Path(toks[0]).expanduser().resolve()
             if not src.exists() or not src.is_file():
-                self._log_block_wrapped("history-import-view", f"Datei nicht gefunden: {src}", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "history-import-view",
+                    f"Datei nicht gefunden: {src}",
+                    color=self._YELLOW,
+                )
                 return
 
             # Datei lesen
             try:
                 head = src.read_text(encoding="utf-8", errors="ignore").lstrip("\ufeff").strip()
             except Exception as e:
-                self._log_block_wrapped("history-import-view", f"Fehler beim Lesen: {e}", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "history-import-view", f"Fehler beim Lesen: {e}", color=self._YELLOW
+                )
                 return
 
             # Auto-Detect enc/plain
@@ -2048,19 +2137,21 @@ class ChattiTUI(App):
                 # Einmal Passphrase erfragen
                 pw = await self._ask_secret(
                     "History-Preview (verschlüsselt)",
-                    "Export-Passphrase eingeben (beim Erstellen der *.enc-Datei vergeben):"
+                    "Export-Passphrase eingeben (beim Erstellen der *.enc-Datei vergeben):",
                 )
                 if pw is None or pw == "":
-                    self._log_block_wrapped("history-import-view", "Abgebrochen.", color=self._YELLOW)
+                    self._log_block_wrapped(
+                        "history-import-view", "Abgebrochen.", color=self._YELLOW
+                    )
                     return
 
                 try:
                     # Entschlüsseln, aber NICHT importieren
-                    salt   = base64.b64decode(doc["salt_b64"])
+                    salt = base64.b64decode(doc["salt_b64"])
                     params = doc.get("scrypt", {"n": 16384, "r": 8, "p": 1, "dklen": 32})
-                    raw    = _scrypt_derive_key(pw, salt, **params)
-                    fkey   = base64.urlsafe_b64encode(raw)
-                    f      = Fernet(fkey)
+                    raw = _scrypt_derive_key(pw, salt, **params)
+                    fkey = base64.urlsafe_b64encode(raw)
+                    f = Fernet(fkey)
                     payload = f.decrypt(base64.b64decode(doc["ciphertext_b64"])).decode("utf-8")
                     for line in payload.splitlines():
                         try:
@@ -2070,7 +2161,11 @@ class ChattiTUI(App):
                         except Exception:
                             continue
                 except Exception:
-                    self._log_block_wrapped("history-import-view", "✖ Falsche Passphrase oder beschädigte Datei.", color=self._YELLOW)
+                    self._log_block_wrapped(
+                        "history-import-view",
+                        "✖ Falsche Passphrase oder beschädigte Datei.",
+                        color=self._YELLOW,
+                    )
                     return
             else:
                 # Plain JSONL
@@ -2091,11 +2186,15 @@ class ChattiTUI(App):
                 self._log_block_wrapped(
                     "history-import-view (Vorschau)",
                     "\n".join(lines) if lines else "(leer)",
-                    color=self._CYAN
+                    color=self._CYAN,
                 )
 
         except Exception as e:
-            self._log_block_wrapped("history-import-view", f"Unerwarteter Fehler: {type(e).__name__}: {e}", color=self._YELLOW)
+            self._log_block_wrapped(
+                "history-import-view",
+                f"Unerwarteter Fehler: {type(e).__name__}: {e}",
+                color=self._YELLOW,
+            )
 
     def _reset_history_state(self) -> None:
         """Leert persistente History + UI + Session-State konsistent."""
@@ -2114,7 +2213,11 @@ class ChattiTUI(App):
         try:
             self._reset_history_state()
         except Exception as e:
-            self._log_block_wrapped("History", f"Fehler beim Zurücksetzen: {type(e).__name__}: {e}", self._YELLOW)
+            self._log_block_wrapped(
+                "History",
+                f"Fehler beim Zurücksetzen: {type(e).__name__}: {e}",
+                self._YELLOW,
+            )
 
     def _repaint_history_tail(self, n: int = 50, show_header: bool = True) -> None:
         """Malt die letzten n Einträge aus self.history in den Log."""
@@ -2140,13 +2243,13 @@ class ChattiTUI(App):
             # nur die letzten n Einträge zeigen
             tail = self.history[-n:] if self.history else []
             for rec in tail:
-                txt  = sec.mask_secrets(rec.get("content", "") or "")
+                txt = sec.mask_secrets(rec.get("content", "") or "")
                 role = rec.get("role", "assistant")
                 color = self.user_colour if role == "user" else self.chat_colour
                 # True = Zeilenabschluss, kein Streaming
                 self._ui(self._write_wrapped, txt, True, color, False)
             # kosmetik + fokus zurück
-            self._blank(1, spacer="\u00A0")
+            self._blank(1, spacer="\u00a0")
             self._ui(self._refocus_input)
         except Exception:
             pass
@@ -2156,7 +2259,7 @@ class ChattiTUI(App):
         lines: list[str] = []
         for r in records:
             pref = "U>" if (r.get("role") == "user") else "A>"
-            content = (r.get("content") or "")
+            content = r.get("content") or ""
             # Leere Zeilen beibehalten
             chunk = content.splitlines() or [""]
             for ln in chunk:
@@ -2181,7 +2284,7 @@ class ChattiTUI(App):
         self._log_block_wrapped(
             "history-import-view",
             f"Datei: {src}\nEinträge: {n}\n" + "\n".join(head) + more,
-            color=self._CYAN
+            color=self._CYAN,
         )
 
     async def _cmd_history_import(self, args: str, *, replace: bool) -> None:
@@ -2194,14 +2297,22 @@ class ChattiTUI(App):
         try:
             uid = sec.get_active_uid()
             if not uid:
-                self._log_block_wrapped("history-import", "Kein aktiver Benutzer gesetzt.", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "history-import",
+                    "Kein aktiver Benutzer gesetzt.",
+                    color=self._YELLOW,
+                )
                 return
 
             # --- Pfad robust parsen (Quote-sicher) ---
             try:
                 toks = shlex.split((args or "").strip())
             except ValueError as e:
-                self._log_block_wrapped("history-import", f"Argumente unklar (Quotes?): {e}", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "history-import",
+                    f"Argumente unklar (Quotes?): {e}",
+                    color=self._YELLOW,
+                )
                 return
 
             if not toks:
@@ -2215,14 +2326,18 @@ class ChattiTUI(App):
             path_str = toks[0]
             src = Path(path_str).expanduser().resolve()
             if not src.exists() or not src.is_file():
-                self._log_block_wrapped("history-import", f"Datei nicht gefunden: {src}", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "history-import", f"Datei nicht gefunden: {src}", color=self._YELLOW
+                )
                 return
 
             # --- enc/plain Auto-Detect ---
             try:
                 head = src.read_text(encoding="utf-8", errors="ignore").lstrip("\ufeff").strip()
             except Exception as e:
-                self._log_block_wrapped("history-import", f"Fehler beim Lesen: {e}", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "history-import", f"Fehler beim Lesen: {e}", color=self._YELLOW
+                )
                 return
 
             is_enc = False
@@ -2238,7 +2353,7 @@ class ChattiTUI(App):
             if is_enc:
                 export_pw = await self._ask_secret(
                     "History-Import (verschlüsselt)",
-                    "Export-Passphrase eingeben (beim Erstellen der *.enc-Datei vergeben):"
+                    "Export-Passphrase eingeben (beim Erstellen der *.enc-Datei vergeben):",
                 )
                 if export_pw is None or export_pw == "":
                     self._log_block_wrapped("history-import", "Abgebrochen.", color=self._YELLOW)
@@ -2246,14 +2361,18 @@ class ChattiTUI(App):
 
                 # Preflight-Decrypt → sofortige, klare Fehlermeldung bei falscher Passphrase
                 try:
-                    salt   = base64.b64decode(doc["salt_b64"])
+                    salt = base64.b64decode(doc["salt_b64"])
                     params = doc.get("scrypt", {"n": 16384, "r": 8, "p": 1, "dklen": 32})
-                    raw    = _scrypt_derive_key(export_pw, salt, **params)
-                    fkey   = base64.urlsafe_b64encode(raw)
-                    f      = Fernet(fkey)
-                    _      = f.decrypt(base64.b64decode(doc["ciphertext_b64"]))  # reine Probe
+                    raw = _scrypt_derive_key(export_pw, salt, **params)
+                    fkey = base64.urlsafe_b64encode(raw)
+                    f = Fernet(fkey)
+                    _ = f.decrypt(base64.b64decode(doc["ciphertext_b64"]))  # reine Probe
                 except Exception:
-                    self._log_block_wrapped("history-import", "✖ Falsche Passphrase oder beschädigte Datei.", color=self._YELLOW)
+                    self._log_block_wrapped(
+                        "history-import",
+                        "✖ Falsche Passphrase oder beschädigte Datei.",
+                        color=self._YELLOW,
+                    )
                     return
             # --- Import im Thread ausführen ---
             try:
@@ -2265,7 +2384,7 @@ class ChattiTUI(App):
                     replace=replace,
                 )
                 mode = "ersetzt" if replace else "angehängt"
-                msg  = f"✓ {n} Einträge {mode}."
+                msg = f"✓ {n} Einträge {mode}."
                 if n == 0:
                     msg += " (Keine gültigen Records gefunden.)"
                 self._log_block_wrapped("history-import", msg, color=self._GREEN)
@@ -2279,10 +2398,18 @@ class ChattiTUI(App):
                 self._ui(self._refresh_title_bar)
 
             except Exception as e:
-                self._log_block_wrapped("history-import", f"Fehler: {type(e).__name__}: {e}", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "history-import",
+                    f"Fehler: {type(e).__name__}: {e}",
+                    color=self._YELLOW,
+                )
 
         except Exception as e:
-            self._log_block_wrapped("history-import", f"Unerwarteter Fehler: {type(e).__name__}: {e}", color=self._YELLOW)
+            self._log_block_wrapped(
+                "history-import",
+                f"Unerwarteter Fehler: {type(e).__name__}: {e}",
+                color=self._YELLOW,
+            )
 
     async def _cmd_remove_my_account(self, _args: str) -> None:
         """
@@ -2295,27 +2422,39 @@ class ChattiTUI(App):
         try:
             uid = sec.get_active_uid()
             if not uid:
-                self._log_block_wrapped("Konto löschen", "Kein aktiver Benutzer.", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "Konto löschen", "Kein aktiver Benutzer.", color=self._YELLOW
+                )
                 return
 
             # 2) Master-Passwort erfragen und verifizieren (API-Key als Check)
-            pw = await self._ask_secret("Konto löschen", "Master-Passwort eingeben (zur Bestätigung):")
+            pw = await self._ask_secret(
+                "Konto löschen", "Master-Passwort eingeben (zur Bestätigung):"
+            )
             if not pw:
                 self._log_block_wrapped("Konto löschen", "Abgebrochen.", color=self._YELLOW)
                 return
             try:
                 _ = sec.get_api_key_by_uid(uid, pw)  # nur Verifikation
             except Exception:
-                self._log_block_wrapped("Konto löschen", "✖ Master-Passwort falsch.", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "Konto löschen", "✖ Master-Passwort falsch.", color=self._YELLOW
+                )
                 return
 
             # 3) Hartes Entfernen im Thread
             try:
                 await asyncio.to_thread(cli_user_remove, uid, True)
-                self._log_block_wrapped("Konto löschen", "✓ Konto entfernt. Tschüss! 👋", color=self._GREEN)
+                self._log_block_wrapped(
+                    "Konto löschen", "✓ Konto entfernt. Tschüss! 👋", color=self._GREEN
+                )
                 self.exit()
             except Exception as e:
-                self._log_block_wrapped("Konto löschen", f"Fehler: {type(e).__name__}: {e}", color=self._YELLOW)
+                self._log_block_wrapped(
+                    "Konto löschen",
+                    f"Fehler: {type(e).__name__}: {e}",
+                    color=self._YELLOW,
+                )
 
         except Exception as e:
             self._log_block_wrapped(
@@ -2323,7 +2462,6 @@ class ChattiTUI(App):
                 f"Unerwarteter Fehler: {type(e).__name__}: {e}",
                 color=self._YELLOW,
             )
-
 
     def _resolve_attachment_selectors(self, selectors: list[str]) -> list[dict]:
         """Nimmt IDs/Namen/Shortcuts ('last', '@N') und gibt Attachment-Metadaten zurück."""
@@ -2414,7 +2552,6 @@ class ChattiTUI(App):
         if self.input:
             self.set_focus(self.input)
 
-
     def _handle_text(self, text: str) -> None:
         text = (text or "").strip()
         if not text:
@@ -2438,17 +2575,29 @@ class ChattiTUI(App):
                         if callable(on_select):
                             on_select(idx - 1)  # 0-basiert
                     except Exception as e:
-                        self._log_block_wrapped("Model", f"Fehler beim Setzen: {type(e).__name__}: {e}", color=self._YELLOW)
+                        self._log_block_wrapped(
+                            "Model",
+                            f"Fehler beim Setzen: {type(e).__name__}: {e}",
+                            color=self._YELLOW,
+                        )
                     finally:
                         self._pending_choice = None
                         self._pick_buf = ""
                     return
                 else:
-                    self._log_block_wrapped("Model", f"Ungültige Nummer (1..{len(options)}).", color=self._YELLOW)
+                    self._log_block_wrapped(
+                        "Model",
+                        f"Ungültige Nummer (1..{len(options)}).",
+                        color=self._YELLOW,
+                    )
                     return
 
             # Nicht-Ziffern bei offener Auswahl nicht ans Modell schicken:
-            self._log_block_wrapped("Model", "Bitte gib eine gültige Zahl ein (oder :cancel).", color=self._YELLOW)
+            self._log_block_wrapped(
+                "Model",
+                "Bitte gib eine gültige Zahl ein (oder :cancel).",
+                color=self._YELLOW,
+            )
             return
         # --- Ende Auswahl-Fallback ---
 
@@ -2465,7 +2614,9 @@ class ChattiTUI(App):
             if " " not in raw_cmd:
                 # Alle Kommandos mit gleichem Präfix-Zeichen (':' oder '/')
                 same_prefix_cmds = [
-                    c for c in commands.KNOWN_CMDS if isinstance(c, str) and c.startswith(raw_cmd[0])
+                    c
+                    for c in commands.KNOWN_CMDS
+                    if isinstance(c, str) and c.startswith(raw_cmd[0])
                 ]
                 # EXAKT? Dann NICHT hier abbiegen → später normal dispatchen
                 if raw_cmd in same_prefix_cmds:
@@ -2518,7 +2669,12 @@ class ChattiTUI(App):
             if cmd in (":attach-list", "/attach-list", ":attachments", "/attachments"):
                 self._cmd_attach_list(args)
                 return
-            if cmd in (":attach-clear", "/attach-clear", ":clearattach", "/clearattach"):
+            if cmd in (
+                ":attach-clear",
+                "/attach-clear",
+                ":clearattach",
+                "/clearattach",
+            ):
                 self._cmd_attach_clear()
                 return
             if cmd in (
@@ -2560,7 +2716,12 @@ class ChattiTUI(App):
                 self._last_boss_trigger = ":boss"
                 self.action_boss_toggle()
                 return
-            if token in (":change-openai-model", "/change-openai-model", ":model", "/model"):
+            if token in (
+                ":change-openai-model",
+                "/change-openai-model",
+                ":model",
+                "/model",
+            ):
                 self._cmd_change_openai_model(args)
                 return  # <-- wichtig!
             if token in (":history-reset", "/history-reset"):
@@ -2570,23 +2731,32 @@ class ChattiTUI(App):
             if token in (":history-dump-plain", "/history-dump-plain"):
                 self._cmd_history_dump(args, mode="plain")
                 return
-            if token in (":history-dump-enc", "/history-dump-enc", ":history-dump", "/history-dump"):
+            if token in (
+                ":history-dump-enc",
+                "/history-dump-enc",
+                ":history-dump",
+                "/history-dump",
+            ):
                 self._cmd_history_dump(args, mode="enc")
                 return
             # History: Import (nur ansehen)
-            if token in (":history-import-view", "/history-import-view",
-                        ":history-import-viewonly", "/history-import-viewonly"):
-                #self.run_worker(self._cmd_history_import_view(args), exclusive=False)
+            if token in (
+                ":history-import-view",
+                "/history-import-view",
+                ":history-import-viewonly",
+                "/history-import-viewonly",
+            ):
+                # self.run_worker(self._cmd_history_import_view(args), exclusive=False)
                 self._run_async(self._cmd_history_import_view(args), exclusive=False)
                 return
             # History: Import (ADD)
             if token in (":history-import-add", "/history-import-add"):
-                #self.run_worker(self._cmd_history_import(args, replace=False), exclusive=False)
+                # self.run_worker(self._cmd_history_import(args, replace=False), exclusive=False)
                 self._run_async(self._cmd_history_import(args, replace=False), exclusive=False)
                 return
             # History: Import (REPLACE)
             if token in (":history-import-replace", "/history-import-replace"):
-                #self.run_worker(self._cmd_history_import(args, replace=True), exclusive=False)
+                # self.run_worker(self._cmd_history_import(args, replace=True), exclusive=False)
                 self._run_async(self._cmd_history_import(args, replace=True), exclusive=False)
                 return
             # :goto N (im Search-Mode)
@@ -2612,8 +2782,6 @@ class ChattiTUI(App):
         self._submit(text)
 
     def _run_search(self, raw: str) -> None:
-
-
         # Defaults
         mode = "and"
 
@@ -2626,25 +2794,36 @@ class ChattiTUI(App):
             limit = int(cfg.get("search_limit", 20))
         except Exception:
             limit = 20
-        case = bool(as_bool(cfg, "search_case_sensitive", False)) if "as_bool" in globals() else False
+        case = (
+            bool(as_bool(cfg, "search_case_sensitive", False)) if "as_bool" in globals() else False
+        )
 
         # Präfixe
         text = raw
-        for prefix, m in (("rx:", "regex"), ("regex:", "regex"), ("or:", "or"), ("and:", "and")):
+        for prefix, m in (
+            ("rx:", "regex"),
+            ("regex:", "regex"),
+            ("or:", "or"),
+            ("and:", "and"),
+        ):
             if raw.lower().startswith(prefix):
                 mode = m
-                text = raw[len(prefix):].strip()
+                text = raw[len(prefix) :].strip()
                 break
 
         if not text:
-            self._log_block_wrapped("🔎 Suche", "leer – bitte Begriffe eingeben", self.search_colour)
+            self._log_block_wrapped(
+                "🔎 Suche", "leer – bitte Begriffe eingeben", self.search_colour
+            )
             return
 
         # Suche
         try:
-            hits = search_history(text, mode=mode, case_sensitive=case, limit=limit, with_context=True)
+            hits = search_history(
+                text, mode=mode, case_sensitive=case, limit=limit, with_context=True
+            )
             self._last_search_query = text
-            self._last_search_hits  = hits
+            self._last_search_hits = hits
         except Exception as e:
             self._log_block_wrapped("🔎 Suche (Fehler)", str(e), self.search_colour)
             return
@@ -2658,7 +2837,7 @@ class ChattiTUI(App):
 
         # merken für :goto
         self._last_search_query = text
-        self._last_search_hits  = hits
+        self._last_search_hits = hits
 
         # kleine TS-Formatierung → lesbar lokal
         def _fmt(ts: str) -> str:
@@ -2674,17 +2853,13 @@ class ChattiTUI(App):
         # durchnummerieren + TS ausgeben
         lines = []
         for i, rec in enumerate(hits, 1):
-            ts   = _fmt(rec.get("ts", ""))
+            ts = _fmt(rec.get("ts", ""))
             role = rec.get("role", "")
             snip = rec.get("snippet", "")
             lines.append(f"{i:>2}. {ts}  {role}> {snip}")
         # Ausgabe für User...
         lines.append("\nTipp ':N' (z. B. :2) oder ':goto N', um zu diesem Treffer zu springen.")
         self._log_block_wrapped(header, "\n\n".join(lines), self.search_colour)
-
-
-
-
 
     def _enter_search_mode(self) -> None:
         self.mode = "search"
@@ -2763,10 +2938,10 @@ class ChattiTUI(App):
         self._log_block_wrapped(
             "Chatti Doctor",
             "⏳ Diagnose läuft, das dauert ein paar Sekunden …",
-            color=self._CYAN
+            color=self._CYAN,
         )
         # 2) Diagnose asynchron starten (UI bleibt responsiv)
-        #self.run_worker(self._run_doctor_worker(), exclusive=False)
+        # self.run_worker(self._run_doctor_worker(), exclusive=False)
         self.run_worker(self._run_doctor_worker(), thread=False, exclusive=False)
 
     async def _run_doctor_worker(self) -> None:
@@ -2775,7 +2950,10 @@ class ChattiTUI(App):
         try:
             # doctor_main() blockiert → in Thread ausführen
             def _call_doctor():
-                with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+                with (
+                    contextlib.redirect_stdout(buf_out),
+                    contextlib.redirect_stderr(buf_err),
+                ):
                     return doctor_main()
 
             exit_code = await asyncio.to_thread(_call_doctor)
@@ -2828,7 +3006,6 @@ class ChattiTUI(App):
         ##self.run_worker(self._do_chat(attach_ids), exclusive=True)
         self._run_async(self._do_chat(attach_ids), exclusive=True)
 
-
     async def _do_chat(self, attach_ids: list[str] | None = None):
         assert self.chat_view is not None
 
@@ -2846,7 +3023,7 @@ class ChattiTUI(App):
                 self.model,
                 self.history,
                 self.system_prompt,  # Behaviour of model
-                True,                # stream_preferred
+                True,  # stream_preferred
                 on_delta,
                 attach_ids or [],
             )
@@ -2854,13 +3031,25 @@ class ChattiTUI(App):
             # --- Ausgabe rendern ---
             if used_stream:
                 if self._cur_line:
-                    self._ui(self._write_wrapped, self._cur_line, True, self.chat_colour, False)
+                    self._ui(
+                        self._write_wrapped,
+                        self._cur_line,
+                        True,
+                        self.chat_colour,
+                        False,
+                    )
                     self._cur_line = ""
                 else:
                     self._ui(self._log_write_line, "")
             else:
                 if full.strip():
-                    self._ui(self._write_wrapped, sec.mask_secrets(full), True, self.chat_colour, False)
+                    self._ui(
+                        self._write_wrapped,
+                        sec.mask_secrets(full),
+                        True,
+                        self.chat_colour,
+                        False,
+                    )
                 else:
                     self._ui(self._log_write_line, "(leer)")
 
@@ -2883,9 +3072,9 @@ class ChattiTUI(App):
 
             # --- Budget-Warnung (optional) ---
             try:
-                cfg       = load_config_effective(uid=uid)
-                budget    = int(cfg.get("token_budget_per_month", 0) or 0)
-                warnpct   = float(cfg.get("token_budget_warn_pct", 0.8) or 0.8)
+                cfg = load_config_effective(uid=uid)
+                budget = int(cfg.get("token_budget_per_month", 0) or 0)
+                warnpct = float(cfg.get("token_budget_warn_pct", 0.8) or 0.8)
                 reset_day = int(cfg.get("token_budget_reset_day", 1) or 1)
                 if budget > 0:
                     _, _, stot = sum_month(uid=uid, month_start_day=reset_day)
@@ -2973,14 +3162,19 @@ class ChattiTUI(App):
     def _sort_models_for_humans(self, mids: list[str], current: str | None) -> list[str]:
         # Light-weight: prefer current first, then “newer” families if present
         prio = [
-            "gpt-4.1", "gpt-4.1-mini",
-            "gpt-4o", "gpt-4o-mini",
-            "gpt-4", "gpt-3.5",
+            "gpt-4.1",
+            "gpt-4.1-mini",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "gpt-4",
+            "gpt-3.5",
         ]
+
         def score(m: str) -> tuple[int, str]:
             base = next((i for i, p in enumerate(prio) if m.startswith(p)), 999)
             cur = -1 if current and m == current else 0
             return (cur, base, m)
+
         return sorted(set(mids), key=score)
 
     async def _fetch_model_ids(self) -> list[str]:
@@ -2992,9 +3186,9 @@ class ChattiTUI(App):
         except Exception:
             return
         if hasattr(sel, "set_options"):
-            sel.set_options(options)          # Textual ≥ 0.58
+            sel.set_options(options)  # Textual ≥ 0.58
         else:
-            sel.options = options             # Fallback
+            sel.options = options  # Fallback
 
     async def _update_model_select(self) -> None:
         ids = await self._fetch_model_ids()
@@ -3006,16 +3200,19 @@ class ChattiTUI(App):
     #     #_write_kv_in_file(conf, "model", model_id)
     #     write_conf_kv_scoped(key, "model", uid=sec.get_active_uid())
 
-
     def _write_user_model_conf(self, uid: str, model_id: str) -> None:
         """Schreibt das aktuelle Modell in die user-spezifische Konfiguration."""
         try:
             from config_loader import write_conf_kv_scoped
+
             write_conf_kv_scoped("default_model", model_id, uid=uid)
             self._log_block_wrapped("Model", f"✓ Modell gespeichert: {model_id}", color=self._GREEN)
         except Exception as e:
-            self._log_block_wrapped("Model", f"Fehler beim Schreiben der Konfiguration: {type(e).__name__}: {e}", color=self._YELLOW)
-
+            self._log_block_wrapped(
+                "Model",
+                f"Fehler beim Schreiben der Konfiguration: {type(e).__name__}: {e}",
+                color=self._YELLOW,
+            )
 
     def _refresh_model_in_ui(self, model_id: str) -> None:
         try:
@@ -3054,7 +3251,7 @@ class ChattiTUI(App):
             self._log_block_wrapped(
                 "Modelle",
                 "⏳ Suche nutzbare Modelle, das dauert ein paar Sekunden …",
-                color=self._CYAN
+                color=self._CYAN,
             )
 
             async def _do():
@@ -3062,21 +3259,35 @@ class ChattiTUI(App):
                 try:
                     client = self.client or get_client(non_interactive=True, require_smoke=False)
                 except Exception as e:
-                    self._log_block_wrapped("Model", f"Client-Fehler: {type(e).__name__}: {e}", color=self._YELLOW)
+                    self._log_block_wrapped(
+                        "Model",
+                        f"Client-Fehler: {type(e).__name__}: {e}",
+                        color=self._YELLOW,
+                    )
                     return
 
                 # 2) Doctor-Liste ziehen (nur Reachability, keine Tokens) und auf OK filtern
                 try:
                     rows = await asyncio.to_thread(
-                        diagnose_models, client, probe=False, timeout=2.0, max_models=200
+                        diagnose_models,
+                        client,
+                        probe=False,
+                        timeout=2.0,
+                        max_models=200,
                     )
                 except Exception as e:
-                    self._log_block_wrapped("Model", f"Diagnose fehlgeschlagen: {type(e).__name__}: {e}", color=self._YELLOW)
+                    self._log_block_wrapped(
+                        "Model",
+                        f"Diagnose fehlgeschlagen: {type(e).__name__}: {e}",
+                        color=self._YELLOW,
+                    )
                     return
 
                 ok_ids = [mid for (mid, status, _hint) in rows if status == "OK"]
                 if not ok_ids:
-                    self._log_block_wrapped("Model", "Keine nutzbaren Modelle gefunden.", color=self._YELLOW)
+                    self._log_block_wrapped(
+                        "Model", "Keine nutzbaren Modelle gefunden.", color=self._YELLOW
+                    )
                     return
 
                 # 3) Sortieren & auf 15 kürzen
@@ -3084,21 +3295,30 @@ class ChattiTUI(App):
                 models_all = models_all[:15]
 
                 # 4) Liste GENAU so loggen, wie sie verwendet wird (wichtig für die Auswahl)
-                lines = [f"{i+1:>3}) {m}" for i, m in enumerate(models_all)]
+                lines = [f"{i + 1:>3}) {m}" for i, m in enumerate(models_all)]
                 self._log_block_wrapped(
                     "Model wählen",
-                    "Gib die Nummer ein und klicke auf Senden (oder :cancel):\n\n" + "\n".join(lines),
-                    color=self._CYAN
+                    "Gib die Nummer ein und klicke auf Senden (oder :cancel):\n\n"
+                    + "\n".join(lines),
+                    color=self._CYAN,
                 )
 
                 # 5) Callback VOR _pending_choice definieren!
                 def _apply_selection(index_zero_based: int) -> None:
                     uid = sec.get_active_uid()
                     if not uid:
-                        self._log_block_wrapped("Model", "Kein aktiver Benutzer gesetzt.", color=self._YELLOW)
+                        self._log_block_wrapped(
+                            "Model",
+                            "Kein aktiver Benutzer gesetzt.",
+                            color=self._YELLOW,
+                        )
                         return
                     if not (0 <= index_zero_based < len(models_all)):
-                        self._log_block_wrapped("Model", "Auswahl außerhalb des Bereichs.", color=self._YELLOW)
+                        self._log_block_wrapped(
+                            "Model",
+                            "Auswahl außerhalb des Bereichs.",
+                            color=self._YELLOW,
+                        )
                         return
 
                     model_id = models_all[index_zero_based]
@@ -3107,12 +3327,18 @@ class ChattiTUI(App):
                     try:
                         write_conf_kv_scoped("default_model", model_id, uid=uid)
                     except Exception as e:
-                        self._log_block_wrapped("Model", f"Konfig-Schreiben fehlgeschlagen: {type(e).__name__}: {e}", color=self._YELLOW)
+                        self._log_block_wrapped(
+                            "Model",
+                            f"Konfig-Schreiben fehlgeschlagen: {type(e).__name__}: {e}",
+                            color=self._YELLOW,
+                        )
                         return
                     # Debug: wohin geschrieben?
                     try:
                         cfg_path = user_conf_file(uid)
-                        self._log_block_wrapped("Model", f"(geschrieben in: {cfg_path})", color=self._CYAN)
+                        self._log_block_wrapped(
+                            "Model", f"(geschrieben in: {cfg_path})", color=self._CYAN
+                        )
                     except Exception:
                         pass
 
@@ -3132,7 +3358,7 @@ class ChattiTUI(App):
                         "Model",
                         f"✓ Modell gesetzt: [b]{model_id}[/b]\n"
                         "(Hinweis: in deiner lokalen chatti.conf gespeichert; wirkt sicher nach Neustart)",
-                        color=self._GREEN
+                        color=self._GREEN,
                     )
                     self._ui(self._refresh_title_bar)
 
@@ -3140,7 +3366,7 @@ class ChattiTUI(App):
                 self._pick_buf = ""  # Buffer reset – wichtig!
                 self._pending_choice = {
                     "title": "Model wählen",
-                    "options": models_all,       # <- identische Liste wie geloggt
+                    "options": models_all,  # <- identische Liste wie geloggt
                     "on_select": _apply_selection,
                 }
 
@@ -3151,16 +3377,16 @@ class ChattiTUI(App):
             self._log_block_wrapped("Model", f"Fehler: {type(e).__name__}: {e}", color=self._YELLOW)
 
 
-
 ###################################################
 #
 # Klasse für die Passwortabfrage
 #
 ###################################################
 
+
 class SecretPrompt(ModalScreen[str | None]):
     BINDINGS = [
-        Binding("enter",  "ok",     show=False),
+        Binding("enter", "ok", show=False),
         Binding("escape", "cancel", show=False),
         Binding("ctrl+c", "cancel", show=False),
     ]
@@ -3210,11 +3436,13 @@ class SecretPrompt(ModalScreen[str | None]):
     def on_input_submitted(self, ev: Input.Submitted) -> None:
         self.dismiss(ev.value or "")
 
+
 ###################################################
 #
 # Klasse für den Privacy-Mode
 #
 ###################################################
+
 
 class BossCover(ModalScreen):
     def __init__(self, hint: str = ""):
@@ -3225,11 +3453,10 @@ class BossCover(ModalScreen):
         # Ein einfacher, sichtbarer Overlay-Hinweis
         with Vertical(id="boss_cover"):
             yield Static(
-                "[b] 😴 Stiller-Mode aktiv[/b]\n\n"
-                "Bildschirm ausgeblendet.\n\n"
-                f"{self._hint}",
-                id="boss_text"
+                f"[b] 😴 Stiller-Mode aktiv[/b]\n\nBildschirm ausgeblendet.\n\n{self._hint}",
+                id="boss_text",
             )
+
     # Keine Keys abfangen – die App-Actions sollen die Tastenkürzel verarbeiten
     def on_key(self, event) -> None:
         pass

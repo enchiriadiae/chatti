@@ -40,11 +40,27 @@ from core.security import (
 
 # Strict chat-text model filter: allow common chat families, exclude audio/image/realtime/embeddings/etc.
 _CHAT_ALLOW_PREFIX = (
-    "gpt-4", "gpt-4o", "gpt-4.1", "gpt-3.5", "o3", "o4",
+    "gpt-4",
+    "gpt-4o",
+    "gpt-4.1",
+    "gpt-3.5",
+    "o3",
+    "o4",
 )
 _CHAT_EXCLUDE_SUBSTR = (
-    "audio", "image", "vision", "whisper", "realtime", "embed", "embedding", "tts", "speech", "translate", "jsonl",
+    "audio",
+    "image",
+    "vision",
+    "whisper",
+    "realtime",
+    "embed",
+    "embedding",
+    "tts",
+    "speech",
+    "translate",
+    "jsonl",
 )
+
 
 def _is_likely_text_chat_model(mid: str) -> bool:
     s = mid.lower()
@@ -56,6 +72,7 @@ def _is_likely_text_chat_model(mid: str) -> bool:
     if s in {"gpt-image-1"}:
         return False
     return True
+
 
 def _env_set_hint(var: str, value_placeholder: str = "dein-passwort") -> list[str]:
     """
@@ -73,10 +90,11 @@ def _env_set_hint(var: str, value_placeholder: str = "dein-passwort") -> list[st
     if os.name == "nt":
         return [
             f'PowerShell:  $env:{var}="{value_placeholder}"; .\\chatti --doc',
-            f'CMD:         set {var}={value_placeholder} && chatti --doc',
+            f"CMD:         set {var}={value_placeholder} && chatti --doc",
         ]
     else:
         return [f'{var}="{value_placeholder}" ./chatti --doc']
+
 
 def _explain_exc_for_user(e: Exception) -> str:
     """Roh-Fehler → freundliche Diagnose (de) ohne Stacktrace."""
@@ -105,6 +123,7 @@ def _explain_exc_for_user(e: Exception) -> str:
 
     # Fallback – letzte, neutrale Variante
     return f"Fehler beim Test: {s or type(e).__name__}"
+
 
 # --- replace your diagnose_models(...) with this version ---
 def diagnose_models(client, *, probe: bool = False, timeout: float = 2.0, max_models: int = 20):
@@ -157,6 +176,7 @@ def diagnose_models(client, *, probe: bool = False, timeout: float = 2.0, max_mo
 
     return rows
 
+
 def main() -> int:
     """
     Run the diagnostic checks.
@@ -182,7 +202,7 @@ def main() -> int:
         return 1
 
     token = (sec.get(f"user.{active_uid}.api_key_enc") or "").strip()
-    salt  = (sec.get(f"user.{active_uid}.kdf_salt")    or "").strip()
+    salt = (sec.get(f"user.{active_uid}.kdf_salt") or "").strip()
 
     if token and salt:
         print(f"✅ Secrets für User [{active_uid}] gefunden (api_key_enc + kdf_salt).")
@@ -194,6 +214,7 @@ def main() -> int:
     # --- Step 2: Crypto library ---
     try:
         import cryptography  # noqa: F401
+
         print("✅ cryptography installed")
     except Exception:
         print("❌ cryptography missing (pip install cryptography)")
@@ -236,18 +257,25 @@ def main() -> int:
 
     # 4b) Modell-Diagnose: Reachability + optional Mini-Probe (kurze Pings)
     yes_probe = ("--probe" in sys.argv) or (os.getenv("CHATTI_DOCTOR_PROBE") == "1")
-    no_probe  = ("--no-probe" in sys.argv) or (os.getenv("CHATTI_DOCTOR_NO_PROBE") == "1")
+    no_probe = ("--no-probe" in sys.argv) or (os.getenv("CHATTI_DOCTOR_NO_PROBE") == "1")
     use_probe = False if no_probe else bool(yes_probe)  # Default: False (keine Token-Probe)
 
     if use_probe:
-        print("⏳ Prüfe Modelle mit Mini-Token-Probe (max_output_tokens=16)… das kann einige Sekunden dauern.", flush=True)
+        print(
+            "⏳ Prüfe Modelle mit Mini-Token-Probe (max_output_tokens=16)… das kann einige Sekunden dauern.",
+            flush=True,
+        )
     else:
         print("⚡ Prüfe Modelle ohne Token-Verbrauch (nur Reachability).", flush=True)
 
     try:
         max_models = int(os.getenv("CHATTI_DOCTOR_MAX", "20"))
         rows = diagnose_models(client, probe=use_probe, timeout=2.0, max_models=max_models)
-        print("\nModelldiagnose — {}".format("mit Mini-Token-Probe" if use_probe else "ohne Token-Probe"))
+        print(
+            "\nModelldiagnose — {}".format(
+                "mit Mini-Token-Probe" if use_probe else "ohne Token-Probe"
+            )
+        )
 
         if not rows:
             print("  Keine Modelle gelistet – API erreichbar, aber keine IDs gefunden.")
@@ -261,9 +289,9 @@ def main() -> int:
             rows_sorted = sorted(
                 rows,
                 key=lambda r: (
-                    0 if r[0] == model else 1,     # Default-Modell zuerst
-                    status_rank.get(r[1], 99),     # Statusreihenfolge
-                    r[0],                           # dann alphabetisch
+                    0 if r[0] == model else 1,  # Default-Modell zuerst
+                    status_rank.get(r[1], 99),  # Statusreihenfolge
+                    r[0],  # dann alphabetisch
                 ),
             )
 
@@ -287,6 +315,7 @@ def main() -> int:
         print(f"⚠️  Could not list models: {e}")
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

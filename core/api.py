@@ -26,9 +26,7 @@ import time
 from getpass import getpass
 from importlib.metadata import version as pkg_version
 from pathlib import Path
-from typing import (
-    Callable,
-)
+from collections.abc import Callable
 
 from config_loader import (
     as_bool,
@@ -44,6 +42,7 @@ from core.attachments import (
     to_data_url,
 )
 from core.paths import (
+    HOME,
     CONF_DIR,
     DATA_DIR,
     PUBLIC_CONF,
@@ -114,6 +113,7 @@ def _notify(title: str, body: str, color: str | None = None) -> None:
     except Exception:
         pass
 
+
 # -------------------------------------------------------------------------
 # API-Health-Check: are OpenAI's API and those of this file still compatible?
 # -------------------------------------------------------------------------
@@ -124,6 +124,7 @@ _SELFCHK_IN_PROGRESS = False
 
 def _now_ts() -> int:
     return int(time.time())
+
 
 def smoke_test(client: OpenAI, model: str = "gpt-4o", timeout: float | None = None) -> None:
     """Kurzer Key/Modell-Sanity-Check. Hebt RuntimeError mit klarer User-Message aus."""
@@ -143,7 +144,7 @@ def smoke_test(client: OpenAI, model: str = "gpt-4o", timeout: float | None = No
             model=model,
             input="ping",
             stream=False,
-            max_output_tokens=16,   # wichtig: Mindestwert für „strenge“ Modelle
+            max_output_tokens=16,  # wichtig: Mindestwert für „strenge“ Modelle
             timeout=timeout,
         )
     except AuthenticationError as e:
@@ -151,11 +152,13 @@ def smoke_test(client: OpenAI, model: str = "gpt-4o", timeout: float | None = No
     except APIError as e:
         raise RuntimeError(f"Testcall auf {model} fehlgeschlagen: {e}") from e
 
+
 def _conf_get_int(cfg: dict, key: str, default: int) -> int:
     try:
         return int(cfg.get(key, default))
     except Exception:
         return default
+
 
 def _should_run_selfcheck(cfg: dict, model: str) -> bool:
     if not as_bool(cfg, "api_selfcheck", True):
@@ -284,7 +287,9 @@ def api_selfcheck(
     if check_stream and report["nonstream_ok"]:
         try:
             stream = client.responses.create(
-                model=model, input=[{"role": "user", "content": "stream ping"}], stream=True
+                model=model,
+                input=[{"role": "user", "content": "stream ping"}],
+                stream=True,
             )
             saw_text = False
             for ev in stream:
@@ -296,7 +301,9 @@ def api_selfcheck(
                 report["streaming"] = "ok"
                 if not quiet_on_success:
                     _notify(
-                        "Streamingtest", "Live-Antworten verfügbar.", color=normalize_color("green")
+                        "Streamingtest",
+                        "Live-Antworten verfügbar.",
+                        color=normalize_color("green"),
                     )
             else:
                 report["streaming"] = "failed"
@@ -331,6 +338,7 @@ def api_selfcheck(
     if not report["nonstream_ok"]:
         report["ok"] = False
     return report
+
 
 def _write_conf_kv(key: str, value: str) -> None:
     """
@@ -370,9 +378,11 @@ def _write_conf_kv(key: str, value: str) -> None:
 
     PUBLIC_CONF.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-#=====================================================
+
+# =====================================================
 # API-Key Handling
-#=====================================================
+# =====================================================
+
 
 def _get_api_key_from_env() -> str | None:
     """
@@ -381,12 +391,14 @@ def _get_api_key_from_env() -> str | None:
     """
     return os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
 
+
 def _has_multiuser(sec: dict) -> bool:
     """Erkennt Multi-User-Layout in den Secrets."""
     try:
         return any(k.startswith("user.") for k in (sec or {}).keys())
     except Exception:
         return False
+
 
 def _preferred_model_from_conf_env() -> str:
     """
@@ -397,8 +409,9 @@ def _preferred_model_from_conf_env() -> str:
     """
     uid = get_active_uid()
     cfg = load_config_effective(uid=uid)
-    val = (cfg.get("default_model") or os.getenv("OPENAI_MODEL") or "gpt-4o")
+    val = cfg.get("default_model") or os.getenv("OPENAI_MODEL") or "gpt-4o"
     return val.strip()
+
 
 def _prompt_api_key() -> tuple[str, str]:
     """
@@ -423,9 +436,11 @@ def _prompt_api_key() -> tuple[str, str]:
             continue
         return api_key, pw1
 
-#=====================================================
+
+# =====================================================
 # User-Handling and CLI with Admin-Gate
-#=====================================================
+# =====================================================
+
 
 def _prompt_master_retry(
     prompt1: str = "Master-Passwort (min. 12 Zeichen, Passphrase empfohlen): ",
@@ -446,6 +461,7 @@ def _prompt_master_retry(
             print("✖  Passwörter ungleich – bitte erneut.")
             continue
         return pw1
+
 
 def _interactive_user_onboarding(preferred_model: str) -> tuple[str, str, str]:
     """
@@ -474,13 +490,14 @@ def _interactive_user_onboarding(preferred_model: str) -> tuple[str, str, str]:
     set_active_user_by_uid(uid)
 
     # Prompts bereitstellen
-    ensure_global_prompts_seed()          # global (~/.config/chatti-cli/docs/prompts)
+    ensure_global_prompts_seed()  # global (~/.config/chatti-cli/docs/prompts)
     ensure_user_prompts_initialized(uid)  # ein paar Beispiele für den User
 
     cfg_path = ensure_user_conf_skeleton(uid)
     print(f"• User-Konfig angelegt: {cfg_path}")
     print(f"✓ Benutzer angelegt (uid={uid}).")
     return uid, api_key, master
+
 
 def _interactive_user_login(sec: dict, _preferred_model: str) -> tuple[str, str]:
     """
@@ -533,6 +550,7 @@ def _interactive_user_login(sec: dict, _preferred_model: str) -> tuple[str, str]
 
     raise RuntimeError("Ungültige Auswahl.")
 
+
 def _init_user_prompts(uid: str) -> None:
     """
     Kopiert Beispiel-Prompts aus dem Repo in den per-User-Prompts-Ordner,
@@ -563,6 +581,7 @@ def _init_user_prompts(uid: str) -> None:
         # genau die Meldung, die du gesehen hast – jetzt aber nur, wenn wirklich was anderes schiefgeht
         print(f"⚠️  Konnte Prompts nicht initialisieren: {type(e).__name__}: {e}")
 
+
 def cli_user_add(preferred_model: str | None = None) -> None:
     """
     Interaktiver Wizard; legt einen neuen Benutzer an, setzt ihn aktiv
@@ -570,7 +589,7 @@ def cli_user_add(preferred_model: str | None = None) -> None:
     zentrale Defaults überschrieben werden können.
     """
     # Admin-PIN needed
-    #_require_admin_gate()
+    # _require_admin_gate()
 
     preferred_model = preferred_model or _preferred_model_from_conf_env()
 
@@ -596,8 +615,8 @@ def cli_user_add(preferred_model: str | None = None) -> None:
     except Exception as e:
         print(f"⚠️  Konnte Prompts nicht initialisieren: {e}")
 
-
     print(f"✓ Benutzer angelegt & aktiviert (uid={uid}).")
+
 
 def cli_user_use(name_or_uid: str) -> None:
     """
@@ -647,8 +666,10 @@ def cli_user_list() -> None:
         mark = " *" if uid == active else ""
         print(f"  {name}  [{uid}]{mark}")
 
+
 def _norm(s: str) -> str:
     return (s or "").strip().casefold()
+
 
 def _looks_like_existing_uid(s: str) -> bool:
     """Prüft, ob s eine gespeicherte UID ist (nur Secrets lesen, keine Master-Eingabe nötig)."""
@@ -697,6 +718,26 @@ def _resolve_uid(name_or_uid: str, master_password: str | None = None) -> str:
         return matches[idx - 1][0]
     raise RuntimeError("Ungültige Auswahl.")
 
+
+def _delete_all_user_portals(name: str = "chatti") -> None:
+    try:
+        sec = load_secrets()
+        uids = {k.split(".")[1] for k in sec.keys() if k.startswith("user.") and k.count(".") >= 2}
+        for uid in uids:
+            _delete_user_portal(uid, name=name)
+    except Exception:
+        pass
+
+
+def _delete_user_portal(uid: str, name: str = "chatti") -> None:
+    portal = HOME / f"{name}_{uid[:8]}"
+    try:
+        if portal.is_symlink() or portal.exists():
+            portal.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 def _delete_user_files(uid: str) -> None:
     """Löscht per-User-Daten & per-User-Konfiguration (keine Secrets)."""
     try:
@@ -707,6 +748,8 @@ def _delete_user_files(uid: str) -> None:
         shutil.rmtree(USERS_CONF_DIR / uid, ignore_errors=True)
     except Exception:
         pass
+    _delete_user_portal(uid)
+
 
 def cli_user_remove(name_or_uid: str, hard: bool = False) -> None:
     """
@@ -722,14 +765,20 @@ def cli_user_remove(name_or_uid: str, hard: bool = False) -> None:
 
     # Falls aktiv → bestätigen
     if get_active_uid() == uid:
-        ans = input("Achtung: Dieser Benutzer ist aktuell aktiv. Trotzdem entfernen? [y/N] ").strip().lower()
+        ans = (
+            input("Achtung: Dieser Benutzer ist aktuell aktiv. Trotzdem entfernen? [y/N] ")
+            .strip()
+            .lower()
+        )
         if ans not in ("y", "yes", "j", "ja"):
             print("Abgebrochen.")
             return
 
     # Bei --hard extra bestätigen
     if hard:
-        ans = input("WIRKLICH ALLE BENUTZER-DATEN LÖSCHEN (History, Attachments, Inputs, Cmds)? [LÖSCHEN/NEIN] ").strip()
+        ans = input(
+            "WIRKLICH ALLE BENUTZER-DATEN LÖSCHEN (History, Attachments, Inputs, Cmds)? [LÖSCHEN/NEIN] "
+        ).strip()
         if ans.lower() not in ("löschen", "loeschen", "delete", "yes", "ja"):
             print("Abgebrochen.")
             return
@@ -764,33 +813,43 @@ def cli_user_remove_by_name(name: str, *, hard: bool = False, all_matches: bool 
     # Mehrdeutig?
     if len(matches) > 1 and not all_matches:
         print("Name mehrfach vorhanden. Bitte wählen:")
-        for i,(uid,nm) in enumerate(matches, 1):
+        for i, (uid, nm) in enumerate(matches, 1):
             print(f"  {i}) {nm}  [{uid}]")
         try:
             sel = input("Nummer wählen (oder Enter zum Abbrechen): ").strip()
         except KeyboardInterrupt:
-            print("\nAbgebrochen."); return
+            print("\nAbgebrochen.")
+            return
         if not sel:
-            print("Abgebrochen."); return
+            print("Abgebrochen.")
+            return
         try:
             idx = int(sel)
             if idx < 1 or idx > len(matches):
-                print("Ungültige Auswahl."); return
+                print("Ungültige Auswahl.")
+                return
         except Exception:
-            print("Ungültige Eingabe."); return
-        matches = [matches[idx-1]]  # genau einer
+            print("Ungültige Eingabe.")
+            return
+        matches = [matches[idx - 1]]  # genau einer
 
     # Bei all_matches → EINMAL deutlich bestätigen
     if len(matches) > 1 and all_matches:
         print(f"Achtung: {len(matches)} Benutzer mit dem Namen „{name}“ werden entfernt.")
         if hard:
-            ans = input("WIRKLICH ALLE BENUTZER-DATEN (inkl. Files) löschen? [LÖSCHEN/NEIN] ").strip().lower()
-            if ans not in ("löschen","loeschen","delete","yes","ja"):
-                print("Abgebrochen."); return
+            ans = (
+                input("WIRKLICH ALLE BENUTZER-DATEN (inkl. Files) löschen? [LÖSCHEN/NEIN] ")
+                .strip()
+                .lower()
+            )
+            if ans not in ("löschen", "loeschen", "delete", "yes", "ja"):
+                print("Abgebrochen.")
+                return
         else:
             ans = input("Wirklich alle passenden Benutzer entfernen (soft)? [y/N] ").strip().lower()
-            if ans not in ("y","yes","j","ja"):
-                print("Abgebrochen."); return
+            if ans not in ("y", "yes", "j", "ja"):
+                print("Abgebrochen.")
+                return
 
     # Entfernen (wie cli_user_remove, aber ohne per-UID Bestätigungen)
     active = get_active_uid()
@@ -813,6 +872,7 @@ def cli_user_remove_by_name(name: str, *, hard: bool = False, all_matches: bool 
 
     mode = "hart" if hard else "soft"
     print(f"✓ {removed} Benutzer entfernt ({mode}).")
+
 
 def get_client(
     non_interactive: bool = False,
@@ -946,7 +1006,7 @@ def get_client(
                 idx = int(sel)
                 if 1 <= idx <= len(chat_models[:25]):
                     chosen = chat_models[idx - 1]
-                    _write_conf_kv("default_model", chosen)   # persist in PUBLIC_CONF
+                    _write_conf_kv("default_model", chosen)  # persist in PUBLIC_CONF
                     os.environ["OPENAI_MODEL"] = chosen
                     print(f"✓ default_model = {chosen} gespeichert.")
     except Exception:
@@ -958,6 +1018,7 @@ def get_client(
 
     # Bereiten, liefern
     return temp_client
+
 
 def get_default_model() -> str:
     """
@@ -991,6 +1052,7 @@ def list_models_raw(client) -> list[str]:
         return out
     except Exception:
         return []
+
 
 def get_reachable_chat_models(client, *, probe: bool = False, timeout: float = 2.0) -> list[str]:
     """
@@ -1088,14 +1150,14 @@ def build_context(history: list[dict], system: str | None = None) -> list[dict]:
 
 
 def chat_once(
-        client: OpenAI,
-        model: str,
-        history: list[dict],
-        system: str = "Du bist hilfsbereit und knapp.",
-        stream_preferred: bool = True,
-        on_delta: Callable[[str], None] | None = None,
-        attach_ids: list[str] | None = None,
-    ) -> tuple[str, bool, dict]:
+    client: OpenAI,
+    model: str,
+    history: list[dict],
+    system: str = "Du bist hilfsbereit und knapp.",
+    stream_preferred: bool = True,
+    on_delta: Callable[[str], None] | None = None,
+    attach_ids: list[str] | None = None,
+) -> tuple[str, bool, dict]:
     """
     Perform a single chat completion (one 'turn') using the OpenAI Responses API.
     Returns:
@@ -1103,7 +1165,7 @@ def chat_once(
     """
 
     # --- config for PDF handling ---
-    #cfg = load_config("chatti.conf")
+    # cfg = load_config("chatti.conf")
     cfg = load_config_effective(uid=get_active_uid())
 
     try:
@@ -1157,7 +1219,10 @@ def chat_once(
                         )
                         if txt.strip():
                             parts.append(
-                                {"type": "input_text", "text": f"(PDF-Textauszug)\n\n{txt}"}
+                                {
+                                    "type": "input_text",
+                                    "text": f"(PDF-Textauszug)\n\n{txt}",
+                                }
                             )
                         else:
                             parts.append(
@@ -1186,7 +1251,10 @@ def chat_once(
                             )
                             for page_idx, url in enumerate(urls, start=1):
                                 parts.append(
-                                    {"type": "input_text", "text": f"[PDF page {page_idx}]"}
+                                    {
+                                        "type": "input_text",
+                                        "text": f"[PDF page {page_idx}]",
+                                    }
                                 )
                                 parts.append({"type": "input_image", "image_url": url})
                         except PDFDepsMissing:
@@ -1194,7 +1262,9 @@ def chat_once(
                             from core.pdf_utils import explain_missing_poppler
 
                             _notify(
-                                "PDF", explain_missing_poppler(), color=normalize_color("yellow")
+                                "PDF",
+                                explain_missing_poppler(),
+                                color=normalize_color("yellow"),
                             )
                         except Exception as e:
                             _notify(
@@ -1212,7 +1282,6 @@ def chat_once(
 
         msgs[last_user_idx]["content"] = parts
 
-
     # Try streaming first
     if stream_preferred:
         try:
@@ -1220,7 +1289,12 @@ def chat_once(
             chunks: list[str] = []
 
             # Platzhalter; wird am Ende aus dem Stream gefüllt, wenn verfügbar
-            usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "model": model}
+            usage = {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "model": model,
+            }
 
             for ev in stream:
                 ev_type = getattr(ev, "type", "") or ""
@@ -1252,9 +1326,18 @@ def chat_once(
                     try:
                         # u kann Obj oder dict sein
                         usage = {
-                            "input_tokens":  int(getattr(u, "input_tokens", 0)  or (u.get("input_tokens", 0)  if isinstance(u, dict) else 0)),
-                            "output_tokens": int(getattr(u, "output_tokens", 0) or (u.get("output_tokens", 0) if isinstance(u, dict) else 0)),
-                            "total_tokens":  int(getattr(u, "total_tokens", 0)  or (u.get("total_tokens", 0)  if isinstance(u, dict) else 0)),
+                            "input_tokens": int(
+                                getattr(u, "input_tokens", 0)
+                                or (u.get("input_tokens", 0) if isinstance(u, dict) else 0)
+                            ),
+                            "output_tokens": int(
+                                getattr(u, "output_tokens", 0)
+                                or (u.get("output_tokens", 0) if isinstance(u, dict) else 0)
+                            ),
+                            "total_tokens": int(
+                                getattr(u, "total_tokens", 0)
+                                or (u.get("total_tokens", 0) if isinstance(u, dict) else 0)
+                            ),
                             "model": model,
                         }
                     except Exception:
@@ -1290,15 +1373,30 @@ def chat_once(
     try:
         u = getattr(resp, "usage", None) or {}
         usage = {
-            "input_tokens":  int(getattr(u, "input_tokens", 0)  or (u.get("input_tokens", 0)  if isinstance(u, dict) else 0)),
-            "output_tokens": int(getattr(u, "output_tokens", 0) or (u.get("output_tokens", 0) if isinstance(u, dict) else 0)),
-            "total_tokens":  int(getattr(u, "total_tokens", 0)  or (u.get("total_tokens", 0)  if isinstance(u, dict) else 0)),
+            "input_tokens": int(
+                getattr(u, "input_tokens", 0)
+                or (u.get("input_tokens", 0) if isinstance(u, dict) else 0)
+            ),
+            "output_tokens": int(
+                getattr(u, "output_tokens", 0)
+                or (u.get("output_tokens", 0) if isinstance(u, dict) else 0)
+            ),
+            "total_tokens": int(
+                getattr(u, "total_tokens", 0)
+                or (u.get("total_tokens", 0) if isinstance(u, dict) else 0)
+            ),
             "model": model,
         }
     except Exception:
-        usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "model": model}
+        usage = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "model": model,
+        }
 
     return text, False, usage
+
 
 ###############################################################
 #
@@ -1306,12 +1404,15 @@ def chat_once(
 #
 ###############################################################
 
+
 def _print_warn(msg: str) -> None:
     print(msg)
+
 
 def _reset_enabled() -> bool:
     v = (os.getenv("CHATTI_ALLOW_FACTORY_RESET") or "").strip().lower()
     return v in {"1", "true", "yes", "on"}
+
 
 def _confirm_typed(prompt: str, expect: str) -> bool:
     """
@@ -1325,6 +1426,7 @@ def _confirm_typed(prompt: str, expect: str) -> bool:
     except (KeyboardInterrupt, EOFError):
         print()
         return False
+
 
 def _dryrun_tree(path: Path) -> None:
     """Listet alle Dateien und Ordner unterhalb von path (rekursiv)."""
@@ -1342,6 +1444,7 @@ def _dryrun_tree(path: Path) -> None:
         for f in files:
             print(f"FILE: {Path(root) / f}")
 
+
 def _safe_rm(p: Path) -> None:
     try:
         if p.is_dir():
@@ -1352,6 +1455,8 @@ def _safe_rm(p: Path) -> None:
         # bewusst still – wir zeigen das Gesamtergebnis unten an
         pass
 
+
+# def cli_factory_reset(*, name: str = "Chatti") -> int:
 def cli_factory_reset() -> int:
     """
     Nicht öffentlicher Werksreset …
@@ -1381,7 +1486,7 @@ def cli_factory_reset() -> int:
 
         # Prüfen, ob irgendetwas „schützenswertes“ existiert
         has_users = count_users_in_secrets() > 0
-        has_pin   = has_admin_pin()
+        has_pin = has_admin_pin()
 
         if has_users or has_pin:
             try:
@@ -1393,14 +1498,19 @@ def cli_factory_reset() -> int:
                 print(str(e))
                 return 1
 
-        _print_warn("⚠️  WERKSRESET: Dies löscht ALLE Benutzer, Histories, Attachments, Secrets und die Admin-PIN lokal.")
+        _print_warn(
+            "⚠️  WERKSRESET: Dies löscht ALLE Benutzer, Histories, Attachments, Secrets und die Admin-PIN lokal."
+        )
         _print_warn("⚠️  Dies kann NICHT rückgängig gemacht werden.")
 
         # Nur für Transparenz: vorhandene UIDs anzeigen (best effort)
         try:
             from core.security import load_secrets
+
             sec = load_secrets()
-            uids = sorted({k.split(".")[1] for k in sec.keys() if k.startswith("user.") and k.count(".") >= 2})
+            uids = sorted(
+                {k.split(".")[1] for k in sec.keys() if k.startswith("user.") and k.count(".") >= 2}
+            )
             print(f"→ Aktive UIDs in chatti-secrets: {', '.join(uids) if uids else '(keine)'}")
         except Exception:
             print("→ Konnte UIDs nicht ermitteln (Secrets evtl. leer/beschädigt).")
@@ -1420,6 +1530,9 @@ def cli_factory_reset() -> int:
             _safe_rm(d)
         for f in (SECRETS_FILE, ADMIN_PIN_FILE):
             _safe_rm(f)
+
+        # Alle User-Portale löschen
+        _delete_all_user_portals()
 
         # Root-Verzeichnisse neu anlegen (ohne Inhalte)
         try:

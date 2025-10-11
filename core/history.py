@@ -28,6 +28,7 @@ def _history_path(uid: str | None = None) -> Path:
     user_data_dir(uid_eff)  # parent sicherstellen
     return p
 
+
 def _history_key_for_uid(uid: str, master: str) -> Fernet:
     sec = load_secrets()
     b64 = (sec.get(f"user.{uid}.kdf_salt") or "").strip()
@@ -35,8 +36,9 @@ def _history_key_for_uid(uid: str, master: str) -> Fernet:
         raise RuntimeError("KDF-Salt fehlt im Secrets für diesen Benutzer.")
     # WICHTIG: urlsafe + Padding-fix
     salt = _b64d_u_padded(b64)
-    fkey = derive_history_key(master, salt)   # liefert Fernet-Key (base64)
+    fkey = derive_history_key(master, salt)  # liefert Fernet-Key (base64)
     return Fernet(fkey)
+
 
 def _now_iso() -> str:
     return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
@@ -159,7 +161,7 @@ def history_import(
     src: Path,
     *,
     uid: str | None = None,
-    export_passphrase: str | None = None,   # Passphrase des *Exports* (nur für enc-Dumps)
+    export_passphrase: str | None = None,  # Passphrase des *Exports* (nur für enc-Dumps)
     replace: bool = False,
 ) -> int:
     """
@@ -237,7 +239,6 @@ def history_import(
     return len(records)
 
 
-
 def save_turn(
     role: str,
     content: str,
@@ -274,6 +275,7 @@ def reset_user_history(uid: str | None = None) -> None:
         pass
     _init_history_file_if_missing(p)
 
+
 def _scrypt_derive_key(
     passphrase: str,
     salt: bytes,
@@ -287,13 +289,14 @@ def _scrypt_derive_key(
     kdf = Scrypt(salt=salt, length=dklen, n=n, r=r, p=p)
     return kdf.derive(passphrase.encode("utf-8"))
 
+
 def history_dump(
     dst: Path,
     *,
-    mode: str = "enc",               # "enc" | "plain"
-    passphrase: str | None = None,   # nur für enc
+    mode: str = "enc",  # "enc" | "plain"
+    passphrase: str | None = None,  # nur für enc
     uid: str | None = None,
-    confirm_plain: bool = False,     # explizites Opt-in für Klartext
+    confirm_plain: bool = False,  # explizites Opt-in für Klartext
 ) -> int:
     """
     Exportiert die aktuelle History in eine Datei.
@@ -317,6 +320,7 @@ def history_dump(
 
     raise ValueError(f"Unbekannter mode: {mode!r} (erwartet 'enc' oder 'plain')")
 
+
 def dump_history_plain(dst: Path, uid: str | None = None) -> int:
     """
     Entschlüsselte History als JSONL im Klartext schreiben.
@@ -335,6 +339,7 @@ def dump_history_plain(dst: Path, uid: str | None = None) -> int:
     except Exception:
         pass
     return len(records)
+
 
 def dump_history_encrypted(dst: Path, passphrase: str, uid: str | None = None) -> int:
     """
@@ -377,6 +382,7 @@ def dump_history_encrypted(dst: Path, passphrase: str, uid: str | None = None) -
         pass
     return len(records)
 
+
 # -------------------------------------------------------------------
 # Suche (verschlüsselte JSONL Zeile-für-Zeile entschlüsseln)
 # -------------------------------------------------------------------
@@ -399,28 +405,30 @@ def _match(line_text: str, needle: str, mode: str, case_sensitive: bool) -> bool
     # default: "and"
     return all(term in t for term in terms)
 
+
 # def _make_snippet(text: str, query: str, *, case_sensitive: bool, width: int = 160) -> str:
-    # # alles zu einer Zeile zusammenziehen (Leerzeilen komprimieren)
-    # flat = re.sub(r"\s+", " ", text).strip()
-    # if not flat:
-    #     return ""
+# # alles zu einer Zeile zusammenziehen (Leerzeilen komprimieren)
+# flat = re.sub(r"\s+", " ", text).strip()
+# if not flat:
+#     return ""
 #
-    # # Position des ersten Treffers suchen
-    # flags = 0 if case_sensitive else re.IGNORECASE
-    # m = re.search(re.escape(query), flat, flags)
-    # if not m:
-    #     # Fallback: Anfang zeigen
-    #     return (flat[:width] + "…") if len(flat) > width else flat
+# # Position des ersten Treffers suchen
+# flags = 0 if case_sensitive else re.IGNORECASE
+# m = re.search(re.escape(query), flat, flags)
+# if not m:
+#     # Fallback: Anfang zeigen
+#     return (flat[:width] + "…") if len(flat) > width else flat
 #
-    # start = max(0, m.start() - width // 4)   # etwas Kontext davor
-    # end   = min(len(flat), m.end() + width // 2)  # mehr Kontext danach
-    # cut = flat[start:end]
-    # # Ellipsen sauber setzen
-    # if start > 0:
-    #     cut = "… " + cut
-    # if end < len(flat):
-    #     cut = cut + " …"
-    # return cut
+# start = max(0, m.start() - width // 4)   # etwas Kontext davor
+# end   = min(len(flat), m.end() + width // 2)  # mehr Kontext danach
+# cut = flat[start:end]
+# # Ellipsen sauber setzen
+# if start > 0:
+#     cut = "… " + cut
+# if end < len(flat):
+#     cut = cut + " …"
+# return cut
+
 
 def _make_snippet(text: str, query: str, *, case_sensitive: bool, width: int = 160) -> str:
     # alles zu einer Zeile zusammenziehen (Leerzeilen komprimieren)
@@ -445,8 +453,8 @@ def _make_snippet(text: str, query: str, *, case_sensitive: bool, width: int = 1
     if not m:
         return (flat[:width] + "…") if len(flat) > width else flat
 
-    start = max(0, m.start() - width // 4)   # etwas Kontext davor
-    end   = min(len(flat), m.end() + width // 2)  # mehr Kontext danach
+    start = max(0, m.start() - width // 4)  # etwas Kontext davor
+    end = min(len(flat), m.end() + width // 2)  # mehr Kontext danach
     cut = flat[start:end]
     if start > 0:
         cut = "… " + cut
@@ -454,14 +462,15 @@ def _make_snippet(text: str, query: str, *, case_sensitive: bool, width: int = 1
         cut = cut + " …"
     return cut
 
+
 def search_history(
     query: str,
-    mode: str = "and",            # "and" | "or" | "regex"
+    mode: str = "and",  # "and" | "or" | "regex"
     case_sensitive: bool = False,
     limit: int = 50,
     uid: str | None = None,
     master: str | None = None,
-    with_context: bool = True,    # ← optional: vorher/nachher mitgeben
+    with_context: bool = True,  # ← optional: vorher/nachher mitgeben
 ) -> list[dict]:
     """
     Durchsucht die (verschlüsselte) User-History zeilenweise.
@@ -524,12 +533,12 @@ def search_history(
         if not ok:
             continue
 
-        #first = text.splitlines()[0]
-        #snippet = (first[:160] + "…") if len(first) > 160 else first
+        # first = text.splitlines()[0]
+        # snippet = (first[:160] + "…") if len(first) > 160 else first
         snippet = _make_snippet(text, q, case_sensitive=case_sensitive, width=160)
 
         item = {
-            "idx": idx,                       # Position in History (0=bestehender Anfang)
+            "idx": idx,  # Position in History (0=bestehender Anfang)
             "ts": rec.get("ts"),
             "role": rec.get("role"),
             "snippet": snippet,
@@ -556,6 +565,7 @@ def search_history(
 
     return res
 
+
 # -------------------------------------------------------------------
 # Eingabe-Hilfen (TUI)
 # -------------------------------------------------------------------
@@ -568,6 +578,7 @@ def load_user_inputs(uid: str | None = None, last_n: int = 200) -> list[str]:
         if h.get("role") == "user" and (h.get("content") or "").strip()
     ]
     return users[-last_n:][::-1]
+
 
 def load_user_commands(uid: str | None = None, last_n: int = 200) -> list[str]:
     """Nur Kommandos (User-Eingaben beginnend mit ':' oder '/'), neueste zuerst, als Liste."""

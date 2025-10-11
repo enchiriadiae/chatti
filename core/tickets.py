@@ -16,6 +16,7 @@ def append_ticket(uid: str, text: str) -> Path:
         f.write(line)
     return p
 
+
 def collect_tickets() -> list[tuple[str, Path, str]]:
     """
     Sammelt alle ticket.txt unter users/*/support.
