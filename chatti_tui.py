@@ -917,7 +917,7 @@ class ChattiTUI(App):
             with Horizontal(id="controls"):
                 if HAS_TEXTAREA:
                     self.input = TextArea(
-                        placeholder="Frag mich [TAB-ENTER zum Senden...]", id="input"
+                        placeholder="Frag mich [TAB-ENTER zum Senden oder : TAB-ENTER für Command-Liste...]", id="input"
                     )
                 else:
                     self.input = Input(placeholder="Frag mich...", id="input")
