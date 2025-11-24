@@ -23,7 +23,7 @@ cd chatti
 
 ### 2️⃣ 🐍 Python & virtuelle Umgebung ([v]irtual [env]ironment) anlegen:
 **Chatti** benötigt Python 3.12 oder höher.
-Unter Linux ist das Modul venv oft nicht automatisch installiert – du musst es nachrüsten.
+Unter Linux ist das Modul venv oft nicht automatisch installiert – in diesem Fall nachrüsten.
 
 ```bash
 # 1. System-Pakete aktualisieren
