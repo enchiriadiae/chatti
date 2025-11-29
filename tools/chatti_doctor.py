@@ -31,47 +31,14 @@ from core.api import (
     get_client,
     get_default_model,
     smoke_test,
+    list_models_raw,
+    is_chat_model,
 )
 from core.paths import PUBLIC_CONF, SECRETS_FILE
 from core.security import (
     get_api_key_by_uid,
     read_secrets,
 )
-
-# Strict chat-text model filter: allow common chat families, exclude audio/image/realtime/embeddings/etc.
-_CHAT_ALLOW_PREFIX = (
-    "gpt-4",
-    "gpt-4o",
-    "gpt-4.1",
-    "gpt-3.5",
-    "o3",
-    "o4",
-)
-_CHAT_EXCLUDE_SUBSTR = (
-    "audio",
-    "image",
-    "vision",
-    "whisper",
-    "realtime",
-    "embed",
-    "embedding",
-    "tts",
-    "speech",
-    "translate",
-    "jsonl",
-)
-
-
-def _is_likely_text_chat_model(mid: str) -> bool:
-    s = mid.lower()
-    if not any(s.startswith(p) for p in _CHAT_ALLOW_PREFIX):
-        return False
-    if any(x in s for x in _CHAT_EXCLUDE_SUBSTR):
-        return False
-    # ditch known non-chat singletons
-    if s in {"gpt-image-1"}:
-        return False
-    return True
 
 
 def _env_set_hint(var: str, value_placeholder: str = "dein-passwort") -> list[str]:
@@ -131,7 +98,7 @@ def diagnose_models(client, *, probe: bool = False, timeout: float = 2.0, max_mo
     Return [(model_id, status, hint)] for likely text-chat models only.
     status: "OK", "Kein Zugriff", "Nicht erreichbar"
     """
-    from core.api import list_models_raw
+    # from core.api import list_models_raw
 
     rows = []
     try:
@@ -139,11 +106,13 @@ def diagnose_models(client, *, probe: bool = False, timeout: float = 2.0, max_mo
     except Exception as e:
         return [("—", "Nicht erreichbar", _explain_exc_for_user(e))]
 
-    ids = [m for m in all_ids if _is_likely_text_chat_model(m)]
+    # ids = [m for m in all_ids if _is_likely_text_chat_model(m)]
+    ids = [m for m in all_ids if is_chat_model(m)]
     if not ids:
         return []
 
-    ids = ids[:max_models]
+    if max_models > 0:
+        ids = ids[:max_models]
 
     # 👇 neu: Client-Variante mit Timeout verwenden
     try:
@@ -269,7 +238,8 @@ def main() -> int:
         print("⚡ Prüfe Modelle ohne Token-Verbrauch (nur Reachability).", flush=True)
 
     try:
-        max_models = int(os.getenv("CHATTI_DOCTOR_MAX", "20"))
+        # 0 = kein Limit
+        max_models = int(os.getenv("CHATTI_DOCTOR_MAX", "0"))
         rows = diagnose_models(client, probe=use_probe, timeout=2.0, max_models=max_models)
         print(
             "\nModelldiagnose — {}".format(

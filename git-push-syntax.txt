@@ -1,0 +1,13 @@
+# Im Projektordner
+git status                      # optional, zum Überblick
+git add .                       # alle Änderungen aufnehmen (oder gezielt Dateien)
+git commit -m "Deine Commit-Message"
+git push                        # auf den Standard-Remote/Branch
+
+# Falls kein Upstream gesetzt ist:
+git branch --show-current       # aktuellen Branch nachschauen, z.B. main oder master
+git push -u origin main         # Beispiel für Branch 'main'
+
+
+# Passwort für git:
+Andr0meda

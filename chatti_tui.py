@@ -1128,16 +1128,47 @@ class ChattiTUI(App):
                 event.stop()
                 return
 
+#             # Enter/Return/Space/Tab → Auswahl (falls möglich) anwenden
+#             if k in ("enter", "return", "space") or ch in ("\r", "\n", " "):
+#                 buf = self._pick_buf
+#                 if not buf or not buf.isdigit():
+#                     self._log_block_wrapped(
+#                         "Model", "Bitte zuerst Nummer tippen.", color=self._YELLOW
+#                     )
+#                     event.prevent_default()
+#                     event.stop()
+#                     return
+#                 idx = int(buf)
+#                 if not (1 <= idx <= maxn):
+#                     self._log_block_wrapped(
+#                         "Model", f"Ungültige Nummer (1..{maxn}).", color=self._YELLOW
+#                     )
+#                     event.prevent_default()
+#                     event.stop()
+#                     return
+#                 _apply_and_cleanup(idx)
+#                 event.prevent_default()
+#                 event.stop()
+#                 return
+
             # Enter/Return/Space/Tab → Auswahl (falls möglich) anwenden
             if k in ("enter", "return", "space") or ch in ("\r", "\n", " "):
                 buf = self._pick_buf
-                if not buf or not buf.isdigit():
-                    self._log_block_wrapped(
-                        "Model", "Bitte zuerst Nummer tippen.", color=self._YELLOW
-                    )
+
+                # Fall 1: Noch keine Zahl getippt → bei "Model wählen" NICHT meckern,
+                # einfach nichts tun (aber Event abfangen, damit nicht unten noch
+                # anderer Enter-Handling-Trick greift).
+                if not buf:
                     event.prevent_default()
                     event.stop()
                     return
+
+                # Fall 2: Irgendwas Komisches im Buffer → defensiv einfach abbrechen
+                if not buf.isdigit():
+                    event.prevent_default()
+                    event.stop()
+                    return
+
                 idx = int(buf)
                 if not (1 <= idx <= maxn):
                     self._log_block_wrapped(
@@ -1146,6 +1177,7 @@ class ChattiTUI(App):
                     event.prevent_default()
                     event.stop()
                     return
+
                 _apply_and_cleanup(idx)
                 event.prevent_default()
                 event.stop()
@@ -2724,6 +2756,14 @@ class ChattiTUI(App):
             ):
                 self._cmd_change_openai_model(args)
                 return  # <-- wichtig!
+
+            if token in (
+                ":show-openai-model",
+                "/show-openai-model",
+            ):
+                self._cmd_show_openai_model(args)
+                return  # <-- wichtig!
+
             if token in (":history-reset", "/history-reset"):
                 self._cmd_history_reset(args)
                 return
@@ -3028,6 +3068,11 @@ class ChattiTUI(App):
                 attach_ids or [],
             )
 
+            # 👇 Debug: Welches Modell meldet die API zurück?
+            #    Bei Bedarf Kommentarzeichen rausnehmen!
+            #    Ansonsten Modell auch über Commands via :show-openai-model() auslesbar.
+            # self._log_api_model_debug(usage)
+
             # --- Ausgabe rendern ---
             if used_stream:
                 if self._cur_line:
@@ -3245,6 +3290,38 @@ class ChattiTUI(App):
             return s
         return None
 
+
+    def _cmd_show_openai_model(self, _args: str) -> None:
+        """Aktuelles OpenAI-Modell anzeigen (aus TUI-Config)."""
+        try:
+            uid = sec.get_active_uid()
+        except Exception:
+            uid = None
+
+        lines = [f"Aktives Modell in dieser Session: {self.model}"]
+        if uid:
+            lines.append(f"Benutzer-UID: {uid}")
+
+        lines.append(
+            "Hinweis: Das ist der Modellname, den Chatti an die OpenAI-API übergibt."
+        )
+
+        self._log_block_wrapped(
+            "Model", "\n".join(lines), color=self._CYAN
+        )
+
+    def _log_api_model_debug(self, usage: dict | None) -> None:
+        if not usage or not isinstance(usage, dict):
+            return
+        api_model = usage.get("model")
+        if not api_model:
+            return
+        self._log_block_wrapped(
+            "Debug",
+            f"Model lt. API: {api_model!r} (self.model={self.model!r})",
+            color=self._CYAN,
+        )
+
     def _cmd_change_openai_model(self, _args: str) -> None:
         try:
             # Sofortige Info an den User
@@ -3268,12 +3345,18 @@ class ChattiTUI(App):
 
                 # 2) Doctor-Liste ziehen (nur Reachability, keine Tokens) und auf OK filtern
                 try:
+                    # wie beim Doctor: max_models nur begrenzen, wenn ENV es will
+                    try:
+                        max_models_env = int(os.getenv("CHATTI_DOCTOR_MAX", "0") or "0")
+                    except Exception:
+                        max_models_env = 0
+
                     rows = await asyncio.to_thread(
                         diagnose_models,
                         client,
                         probe=False,
                         timeout=2.0,
-                        max_models=200,
+                        max_models=max_models_env if max_models_env > 0 else 0,
                     )
                 except Exception as e:
                     self._log_block_wrapped(
@@ -3290,9 +3373,24 @@ class ChattiTUI(App):
                     )
                     return
 
-                # 3) Sortieren & auf 15 kürzen
+                # 3) Sortieren (kein hartes Modell-Limit mehr)
                 models_all = self._sort_models_for_humans(ok_ids, self.model)
-                models_all = models_all[:15]
+
+                # Optional: Anzeige-Liste über ENV begrenzen (0/leer = kein Limit)
+                try:
+                    pick_max = int(os.getenv("CHATTI_MODEL_PICK_MAX", "0") or "0")
+                except Exception:
+                    pick_max = 0
+                if pick_max > 0 and len(models_all) > pick_max:
+                    models_all = models_all[:pick_max]
+
+                if not models_all:
+                    self._log_block_wrapped(
+                        "Model",
+                        "Keine Modelle nach Filter/Limit übrig.",
+                        color=self._YELLOW,
+                    )
+                    return
 
                 # 4) Liste GENAU so loggen, wie sie verwendet wird (wichtig für die Auswahl)
                 lines = [f"{i + 1:>3}) {m}" for i, m in enumerate(models_all)]
@@ -3357,6 +3455,7 @@ class ChattiTUI(App):
                     self._log_block_wrapped(
                         "Model",
                         f"✓ Modell gesetzt: [b]{model_id}[/b]\n"
+                        "Wirkt ab der [b]nächsten Antwort[/b].\n"
                         "(Hinweis: in deiner lokalen chatti.conf gespeichert; wirkt sicher nach Neustart)",
                         color=self._GREEN,
                     )

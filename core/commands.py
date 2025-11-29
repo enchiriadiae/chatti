@@ -133,6 +133,13 @@ COMMAND_GROUPS = [
                 "aliases": ["/change-openai-model"],
                 "desc": "OpenAI-Modell auswählen & speichern",
             },
+
+            {
+                "main": ":show-openai-model",
+                "aliases": ["/show-openai-model"],
+                "desc": "Aktuelles OpenAI-Modell anzeigen",
+            },
+
         ],
     },
     {
