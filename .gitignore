@@ -19,3 +19,6 @@ chatti_history_dump_*.jsonl
 # (Nur falls versehentlich unter project angelegt)
 data/
 users/
+
+# Git-Helferlein
+git-sync.sh
