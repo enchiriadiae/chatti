@@ -1053,14 +1053,13 @@ def list_models_raw(client) -> list[str]:
     except Exception:
         return []
 
-
 def get_reachable_chat_models(client, *, probe: bool = False, timeout: float = 2.0) -> list[str]:
     """
     Liefert Chat-geeignete Modelle, die *jetzt* erreichbar sind.
     - immer: client.models.retrieve(mid) (kein Tokenverbrauch)
     - optional probe=True: Mini-Chat-Request als End-to-End-Check (kostet 1-2 Token)
     """
-    # is_chat_model gibt es bereits bei dir in core.api
+
     try:
         all_ids = list_models_raw(client)
         candidates = [m for m in all_ids if is_chat_model(m)]
@@ -1092,16 +1091,49 @@ def get_reachable_chat_models(client, *, probe: bool = False, timeout: float = 2
         return []
 
 
+# New version of is_chat_model(): No further Hard-Pinning of LLM-Models.
 def is_chat_model(name: str) -> bool:
     """
-    Heuristic: identify likely 'chat' models by substring.
-    Keeps logic local and easy to tweak without hardcoding exact names.
+    Heuristik: erkenne allgemeine Text-Chat-Modelle, ohne konkrete Versionsnamen
+    hart zu verdrahten.
+
+    Idee:
+    - „Offensichtliche Nicht-Chat-Modelle“ (Embeddings, Moderation, Audio, TTS …)
+      explizit ausschließen.
+    - Alles, was wie ein allgemeines GPT-/o*-Chatmodell aussieht, zulassen.
     """
     if not name:
         return False
-    nid = name.lower()
-    return any(k in nid for k in ("gpt", "chat", "4o", "4.1", "realtime"))
 
+    nid = name.lower().strip()
+
+    # 1) offensichtliche Nicht-Chat-Familien hart ausschließen
+    block_substrings = (
+        "embedding",
+        "embeddings",
+        "moderation",
+        "omni-moderation",
+        "whisper",
+        "audio",
+        "tts",
+        "image",
+        "vision",
+        "batch",
+    )
+    if any(bad in nid for bad in block_substrings):
+        return False
+
+    # 2) typische Chat-Familien
+    #    - alles, was mit "gpt-" beginnt → GPT-3.5/4/5/…
+    #    - neue o*-Familien (o1, o3, …), falls du die später nutzen willst
+    if nid.startswith("gpt-") or nid.startswith("o1") or nid.startswith("o3"):
+        return True
+
+    # 3) Fallback: Modelle, die explizit "chat" im Namen tragen
+    if "chat" in nid:
+        return True
+
+    return False
 
 def build_context(history: list[dict], system: str | None = None) -> list[dict]:
     """
