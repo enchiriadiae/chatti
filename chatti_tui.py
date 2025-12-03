@@ -25,6 +25,7 @@ import datetime
 import io
 import json
 import os
+import re
 import shlex
 import shutil
 import sys
@@ -95,6 +96,8 @@ from textual.widgets import Button, Footer, Header, Input, Log, Select, Static
 from tools.chatti_doctor import diagnose_models
 from tools.chatti_doctor import main as doctor_main
 
+import pyperclip
+
 # Optional TextArea (if available in your Textual version)
 try:
     from textual.widgets import TextArea
@@ -138,31 +141,45 @@ class ChattiTUI(App):
     _RESET = normalize_color("reset")
 
     # careful: Don't bind against textuals. Use their key-bindings instead! Saves lots of work!
-    # BINDINGS = [
-    #     Binding("alt+up", "history_prev", show=False, priority=True),
-    #     Binding("alt+down", "history_next", show=False, priority=True),
-    #     Binding("ctrl+q", "exit", show=False, priority=True),
-    #     Binding("shift+ctrl+b", "boss_toggle", show=False, priority=True),
-    # ]
-
     BINDINGS = [
         Binding("alt+up", "history_prev", show=False, priority=True),
         Binding("alt+down", "history_next", show=False, priority=True),
         Binding("ctrl+q", "exit", show=False, priority=True),
         Binding("ctrl+b", "boss_toggle_b", show=False, priority=True),  # the one to rely on
-        Binding("ctrl+g", "boss_toggle_g", show=False, priority=True),  # extra fallback
+        Binding("ctrl+g", "boss_toggle_g", show=False, priority=True),
+        Binding("ctrl+y", "copy_chat", "Chat → Clipboard", show=True), # Clipboard-Copy
     ]
+
+    # Regex für ANSI-/Farbcode-Escapes **und** nackte SGR-Sequenzen wie "[32m"
+    _ANSI_RE = re.compile(
+        r"(?:\x1b\[|\[)[0-9;]*m"   # ESC[32m oder auch nur [32m / [0;32m etc.
+    )
+
+    # optional: Rich-/Textual-Markup wie [bold], [green], [/]
+    _RICH_RE = re.compile(
+        r"\[(?:/?[a-zA-Z][^]]*)\]"  # [bold], [green], [/], [dim], ...
+    )
+
+    def _strip_ansi(self, text: str) -> str:
+        """Entfernt ANSI-/SGR- und Rich-Markup-Codes aus einem Text (für Clipboard/Exports)."""
+        if not text:
+            return ""
+        t = self._ANSI_RE.sub("", text)
+        t = self._RICH_RE.sub("", t)
+        return t
 
     def __init__(self, client=None):
         super().__init__()
         self.client = client or get_client()
         self.model = get_default_model()
         self.title = f"Chatti — {self.model}"
-        # self.history = load_history()
         self.history = load_history_tail(last_n=200)
 
         self.chat_view: Log | None = None
         self.input: Input | None = None
+        
+        # Clipboard-Copy
+        self._log_buffer: list[str] = []
 
         # streaming state
         self._cur_line = ""
@@ -315,6 +332,7 @@ class ChattiTUI(App):
     #             txt = self._get_user_text()
     #             if txt and (txt.startswith(":") or txt.startswith("/")) and " " not in txt:
     #                 self._autocomplete_command()
+
 
     def _run_async(self, coro, *, exclusive: bool = False):
         self.run_worker(coro, thread=False, exclusive=exclusive)
@@ -622,6 +640,11 @@ class ChattiTUI(App):
         s = self._as_str(text)
         if not self.chat_view:
             return
+
+        # NEU: in den Clipboard-Puffer hängen
+        # self._log_buffer.append(s)
+        self._log_buffer.append(self._strip_ansi(s))
+
         if hasattr(self.chat_view, "write_line"):
             self.chat_view.write_line(s)  # type: ignore[attr-defined]
         else:
@@ -1044,6 +1067,95 @@ class ChattiTUI(App):
         self._toggle_boss_mode()
         self._boss_key = None
 
+
+
+    # Neu: Copy to Clipboard
+    def action_copy_chat(self) -> None:
+        """Kompletten Chat-Log ins Clipboard schieben (pyperclip → fallback OSC52)."""
+
+        self._log_block_wrapped(
+            "Debug",
+            f"copy_chat ausgelöst, Buffer-Zeilen: {len(self._log_buffer)}",
+            color=self._CYAN,
+        )
+
+        raw = "\n".join(self._log_buffer)
+        text = self._strip_ansi(raw)
+
+        if not text.strip():
+            self.notify("Nix zum Kopieren gefunden.", severity="warning")
+            return
+
+        ok = False
+        err_msg = None
+
+        # 1) Erst pyperclip versuchen (lokales Clipboard auf *diesem* Host)
+        try:
+            pyperclip.copy(text)
+            ok = True
+        except Exception as e:
+            err_msg = f"pyperclip: {type(e).__name__}: {e}"
+
+        # 2) Wenn das (auf Tuxi/SSH) scheitert, OSC52 in Richtung Terminal schicken
+        if not ok:
+            osc_ok = self._copy_via_osc52(text)
+            if osc_ok:
+                # Optional etwas ausführlicher loggen:
+                self._log_block_wrapped(
+                    "Clipboard",
+                    "Text via OSC52 an dein Terminal-Clipboard geschickt.\n"
+                    "(Falls dein Terminal das unterstützt, kannst du jetzt direkt ⌘+V / Ctrl+V benutzen.)\n"
+                    "HINWEIS: Das Standard-Terminal von Apples MacOS unterstützt diese Funktion nicht!\n"
+                    "Falls benötigt, unter MacOS bitte auf iTerm2 umsteigen.",
+                    color=self._CYAN,
+                )
+                return
+            else:
+                msg = "Konnte nichts ins Clipboard kopieren."
+                if err_msg:
+                    msg += f"\n{err_msg}"
+                self._log_block_wrapped("Clipboard", msg, color=self._YELLOW)
+                return
+
+        # 3) Erfolgsweg pyperclip
+        self._log_block_wrapped(
+            "Clipboard",
+            f"{len(self._log_buffer)} Zeilen in die Zwischenablage kopiert.",
+            color=self._GREEN,
+        )
+
+    def _copy_via_osc52(self, text: str) -> bool:
+        """Versucht, Text via OSC52 ("Operating System Command"", Steuerzeichen 52))
+        ins lokale Terminal-Clipboard zu kopieren.
+    
+        Funktioniert in vielen Terminals (iTerm2, einige xterm-Varianten).
+        Klappt besonders gut bei SSH-Sessions, weil der Text direkt beim Client landet.
+        
+        Does NOT work in MacOS-Standard-Terminal!! :-((
+        """
+        try:
+            data = base64.b64encode(text.encode("utf-8")).decode("ascii")
+            # ESC ] 52 ; c ; <base64> BEL
+            seq = f"\033]52;c;{data}\a"
+
+            """ Explanation of seq-String above:
+            \033 = ESC
+            ]52; = „Operating System Command Nummer 52“
+            c = Ziel clipboard (es gibt auch andere Ziele wie 0 / 1 je nach Terminal)
+            <base64> = der eigentliche Text, Base64-kodiert
+            \a = BEL (Glocke) → markiert das Ende der Sequenz
+            """
+
+            # Direkt an den *echten* stdout (FD 1) schreiben, Textual umgehen:
+            os.write(1, seq.encode("ascii", "replace"))
+    
+            return True
+        except Exception:
+            return False
+
+
+
+
     # History nur, wenn Eingabe fokussiert
     async def on_key(self, event) -> None:
         # Debug (temporär):
@@ -1127,29 +1239,6 @@ class ChattiTUI(App):
                 event.prevent_default()
                 event.stop()
                 return
-
-#             # Enter/Return/Space/Tab → Auswahl (falls möglich) anwenden
-#             if k in ("enter", "return", "space") or ch in ("\r", "\n", " "):
-#                 buf = self._pick_buf
-#                 if not buf or not buf.isdigit():
-#                     self._log_block_wrapped(
-#                         "Model", "Bitte zuerst Nummer tippen.", color=self._YELLOW
-#                     )
-#                     event.prevent_default()
-#                     event.stop()
-#                     return
-#                 idx = int(buf)
-#                 if not (1 <= idx <= maxn):
-#                     self._log_block_wrapped(
-#                         "Model", f"Ungültige Nummer (1..{maxn}).", color=self._YELLOW
-#                     )
-#                     event.prevent_default()
-#                     event.stop()
-#                     return
-#                 _apply_and_cleanup(idx)
-#                 event.prevent_default()
-#                 event.stop()
-#                 return
 
             # Enter/Return/Space/Tab → Auswahl (falls möglich) anwenden
             if k in ("enter", "return", "space") or ch in ("\r", "\n", " "):
@@ -1288,18 +1377,6 @@ class ChattiTUI(App):
                 self._hist_draft = ""
                 return
 
-            # if event.key == "enter":
-            #     event.prevent_default(); event.stop()
-            #     q = self._get_user_text().strip()
-            #     if q:
-            #         self._history_push(q, kind="search")
-            #     self._do_search(q)
-            #     self.set_focus(self.input)
-            #     self._clear_input()
-            #     self._hist_pos = None
-            #     self._hist_draft = ""
-            #     self.set_focus(self.input)
-            #     return
             if event.key == "escape":
                 event.prevent_default()
                 event.stop()
