@@ -43,7 +43,7 @@ need() {
 }
 
 say "Python"
-python -V || { err "Python not found"; exit 1; }
+python3 -V || { err "Python not found"; exit 1; }
 
 if need ruff; then
   say "Ruff"
@@ -52,7 +52,7 @@ if need ruff; then
 fi
 
 say "Import smoke"
-python - <<'PY'
+python3 - <<'PY'
 import sys
 mods = [
   "core.paths",

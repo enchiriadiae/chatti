@@ -26,6 +26,7 @@ from core.api import (
     cli_user_list,
     cli_user_remove,
     cli_user_use,
+    get_client,
 )
 from core.paths import (
     DOCS_DIR,
@@ -34,7 +35,6 @@ from core.paths import (
     prune_orphan_secret_entries,
     prune_orphan_user_dirs,
 )
-
 
 # ---------------- Internet-Check ----------------
 def check_internet(timeout: float = 2.0, retries: int = 2) -> tuple[bool, str]:
@@ -102,6 +102,7 @@ def _parse_args(argv: list[str]) -> dict:
         "doc": False,
         "doctor": False,
         "verify": False,
+        "readme": False,
         "manual": False,
         "reset": None,  # "soft" | "hard" | None
         "collect_tickets": False,  # collect support-ticket
@@ -122,7 +123,9 @@ def _parse_args(argv: list[str]) -> dict:
         a = argv[i]
         if a in ("-h", "--help"):
             args["help"] = True
-        elif a in ("-man", "--manual"):
+        elif a in ("--readme",):
+            args["readme"] = True
+        elif a in ("-m", "--manual"):
             args["manual"] = True
         elif a == "--doc":
             args["doc"] = True
@@ -210,7 +213,8 @@ def _print_help() -> None:
     print("  --doc, --doctor            Diagnose laufen lassen.")
     print("  --collect-tickets          Listet alle ticket.txt aus allen User-Verzeichnissen.")
     print("  -h, --help                 Diese Hilfe anzeigen")
-    print("  -man, --manual             Ausführliche Anleitung (Manpage/Manual) anzeigen.")
+    print("  --readme             Basics (README.md) anzeigen.")
+    print("  -m, --manual             Ausführliche Anleitung (Manpage/Manual) anzeigen.")
     print("  --user-add                 Neuen Benutzer anlegen (Name, API-Key, Master).")
     print("  --user-list                Benutzerliste anzeigen (entschlüsselt; fragt Master).")
     print("  --user-use <Name|UID>      Aktiven Benutzer setzen (fragt Master).")
@@ -219,6 +223,32 @@ def _print_help() -> None:
         "       --hard                Zusätzlich alle Benutzerdaten löschen (History, Attachments …)."
     )
     print()
+
+def _print_readme() -> int:
+    """Zeigt die README—Priorität: globale DOCS_DIR, dann Repo-Files."""
+    candidates = [
+        DOCS_DIR / "README.md",
+        DOCS_DIR / "README.txt",
+        ROOT / "README.md",
+        ROOT / "README.txt",
+    ]
+
+    for path in candidates:
+        try:
+            if path.exists():
+                text = path.read_text(encoding="utf-8")
+                print(text)
+                return 0
+        except Exception:
+            # Nächsten Kandidaten versuchen
+            pass
+
+    print("Keine README im Root-Ordner (/chatti) gefunden.")
+    try:
+        print(f"Hinweis: ROOT = {ROOT}")
+    except Exception:
+        pass
+    return 1
 
 
 def _print_manual() -> int:
@@ -450,13 +480,24 @@ def main() -> int:
         _print_help()
         return 0
 
+    if args["readme"]:
+        return _print_readme()
+
     if args["manual"]:
         return _print_manual()
 
     if args.get("doc") or args.get("doctor"):
         from tools.chatti_doctor import main as doctor_main
-
         return doctor_main()
+
+    if args["verify"]:
+        try:
+            get_client(require_smoke=True, non_interactive=False)
+            print("✓ API-Key & Modellzugriff ok.")
+            sys.exit(0)
+        except Exception as e:
+            print(f"✖  Verifizierungsfehler: {e}")
+            sys.exit(1)
 
     if args["reset"]:
         mode = args["reset"]
@@ -503,8 +544,6 @@ def main() -> int:
     except Exception as e:
         print(f"[Setup-Fehler] {e}")
         return 1
-
-    from core.api import get_client
 
     require_smoke = bool(args["verify"])
     _maybe_print_selfcheck_notice()

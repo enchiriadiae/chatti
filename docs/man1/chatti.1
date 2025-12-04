@@ -1,92 +1,123 @@
 .TH CHATTI 1 "2025-09-28" "Chatti Client" "User Commands"
+
 .SH NAME
 chatti \- TUI/CLI Client fuer Chat mit OpenAI Modellen
+
 .SH SYNOPSIS
 .B chatti
 [\-\-verify]
 [\-\-reset\-auth[=soft|hard]]
 [\-\-doc|\-\-doctor]
-[\-\-man|\-\-manual]
+[\-\-manual]
+[\-\-readme]
 [\-\-help|\-h]
+
 .SH DESCRIPTION
 .B Chatti
 ist ein textbasierter Client mit Suchmodus, Verlauf, Attachments und
 Autocomplete fuer Slash\-Kommandos.
+
 .PP
 Die Konfiguration erfolgt ueber die Datei
 .I chatti.conf
 im Projekt bzw. Benutzerkontext.
+
 .SH OPTIONS
 .TP
 .B \-\-verify
 Fuehrt beim Start einen kurzen API Selbsttest aus. Gibt Diagnose und
 Exit\-Code zurueck.
+
 .TP
-.B \-\-reset\-auth[=soft|hard]
+.B \-\--reset\-auth[=soft|hard]
 Setzt gespeicherte Authentifizierungsdaten zurueck.
 Mit
 .I soft
-werden nur temporare Token geloescht.
+werden nur temporaere Token geloescht.
 Mit
 .I hard
 werden alle gespeicherten Zugangsdaten entfernt.
+
 .TP
 .B \-\-doc , \-\-doctor
 Startet das Diagnose\-Tool. Prueft Konfiguration, Dateirechte,
 Netzwerk und Modellzugriff.
+
 .TP
-.B \-\-man , \-\-manual
+.B \-\-manual
 Zeigt das ausfuehrliche Handbuch an
 (
 .I docs/MANUAL.md
 ).
+
+.TP
+.B \-\-readme
+Zeigt die Projekt\-README an
+(
+.I README.md
+).
+
 .TP
 .B \-\-help , \-h
 Zeigt eine kurze Uebersicht der Befehlszeilenoptionen.
+
 .SH FILES
 .TP
 .I chatti.conf
 Konfigurationsdatei (Farben, Prompts, Verhalten).
+
 .TP
 .I docs/MANUAL.md
 Ausfuehrliches Handbuch.
+
 .TP
 .I docs/man1/chatti.1
 Diese Manpage (lokal im Projekt).
+
 .SH ENVIRONMENT
 .TP
 .B CHATTI_SKIP_NETCHECK
 Wenn auf "1" gesetzt, ueberspringt Chatti den Netzwerkcheck
 beim Start (socket test).
+
 .SH EXIT STATUS
 Der Exit\-Status ist 0 bei Erfolg. Ein von 0 verschiedener Wert
 signalisiert einen Fehler. Diagnosen werden auf STDERR ausgegeben.
+
 .SH EXAMPLES
 .TP
 .B chatti \-\-verify
-Führt einen kurzen Selbsttest aus.
+Fuehrt einen kurzen Selbsttest aus.
+
 .TP
-.B chatti \-\-man
+.B chatti \-\-manual
 Zeigt das Handbuch aus
 .I docs/MANUAL.md
 an.
+
+.TP
+.B chatti \-\-readme
+Zeigt
+.I README.md
+im Projektwurzelverzeichnis an.
+
 .TP
 .B MANPATH=./docs man chatti
 Zeigt diese Manpage an, wenn sie lokal im Repo liegt
 (
 .I docs/man1/chatti.1
 ).
+
 .SH SEE ALSO
 .BR groff (1),
 .BR mandoc (1),
 .BR man (1)
+
 .SH NOTES
 Fuer lokale Nutzung ohne Systeminstallation die Datei unter
 .I docs/man1/chatti.1
-ablegen und mit
-.QR "man \-M ./docs chatti"
-aufrufen. Alternativ kann die Seite direkt mit
-.QR "mandoc \-Tutf8 docs/man1/chatti.1 | less \-R"
-angezeigt werden.
+ablegen und in /chatti/scripts mit ./showman.sh 
+aufrufen.
+
 .SH BUGS
 Bitte Probleme und Vorschlaege als Issues im Projekt melden.

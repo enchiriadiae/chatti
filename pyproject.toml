@@ -1,15 +1,50 @@
-# pyproject.toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
+[project]
+name = "chatti-client"
+version = "0.9.1"
+description = "TUI-basiertes ChatGPT/OpenAI-Frontend (Chatti-Client)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+]
+
+authors = [
+  { name = "Thomas", email = "enchiriadis@netcologne.de" },
+]
+
+dependencies = [
+  "openai>=1.12,<2.0",
+  "textual>=0.58",
+  "cryptography>=42",
+  "requests>=2.32",
+  "PyPDF2>=3.0",
+  "pdf2image>=1.17",
+  "Pillow>=10.3",
+  "zxcvbn>=4.4.28",
+  "pyperclip>=1.11",
+]
+
+[project.scripts]
+chatti = "chatti.__main__:main"
+chatti-showman = "chatti.scripts.showman:main"
+
+[tool.hatch.build.targets.wheel]
+only-include = [
+  "chatti",
+  "docs",
+]
+
+
+# Ruff (needed during developement):
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-fix = true          # <<< HIER: fix bleibt im Top-Level
+fix = true
 
 [tool.ruff.lint]
-select = ["F401", "F821", "F841", "ARG", "UP"]  # <<< Lint-Regeln gehören in .lint
-# ignore = ["E501"]           # Beispiel, falls du etwas ausblenden willst
-
-# Optional: Formatter-Einstellungen (falls genutzt)
-# [tool.ruff.format]
-# quote-style = "preserve"
-# indent-style = "space"
+select = ["F401", "F821", "F841", "ARG", "UP"]

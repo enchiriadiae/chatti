@@ -498,7 +498,6 @@ def _interactive_user_onboarding(preferred_model: str) -> tuple[str, str, str]:
     print(f"✓ Benutzer angelegt (uid={uid}).")
     return uid, api_key, master
 
-
 def _interactive_user_login(sec: dict, _preferred_model: str) -> tuple[str, str]:
     """
     Fragt Master ab, versucht erst den aktiven User; wenn keiner/fehlgeschlagen:
