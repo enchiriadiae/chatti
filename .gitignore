@@ -3,6 +3,7 @@
 __pycache__/
 *.py[cod]
 *.log
+*.pyc
 .DS_Store
 .pytest_cache/
 
@@ -15,6 +16,16 @@ chatti_history_dump_*.jsonl
 *.enc
 *.tmp
 *.bak
+
+# virtuelle Umgebungen
+.venv/
+.venv-test/
+
+
+
+# Projekt-spezifisch
+file-structure.txt
+pyvenv.cfg
 
 # (Nur falls versehentlich unter project angelegt)
 data/

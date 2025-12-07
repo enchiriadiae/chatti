@@ -9,12 +9,17 @@ Er läuft vollständig im Terminal (TUI) und bringt eine klare, robuste Architek
 - 🧠 Lokale Sicherheit (Fernet-Crypto, keine Cloud-Abhängigkeit, keine Klartextdaten auf dem Datenträger)
 - 🧑‍💻 Entwickelt in Python 3, vollständig Open-Source
 
----
+
 
 ## 🚀 Schnellstart - Installation aus git
 👉🏽**Hinweis:**
 Eine ausführlichere Installationsanleitung liegt im (Projekt)-Order:
 /chatti/docs/installation-guide.md
+
+Homepage/Wiki:
+https://wiki.tuxi.ddnss.de/wiki/ChatGPT-Client_-_Wiki
+
+👉🏽 Doku und Wiki entstehen zum Zeitpunkt dieser README.md und sind entsprechend unvollständig.
 
 ### 1️⃣ Repository klonen
 ```bash
@@ -69,8 +74,7 @@ Details zur Bedienung sieh Abschnitt "Kurzbedienung im Client" weiter unten.
 ```
 Wenn alles grün ist → 🎉 **Chatti** läuft!
 
-➡️ HINWEIS:
-🔧 Die Installation via `pyproject.toml` (mit `hatchling` als Build-System) ist in Vorbereitung.
+
 
 Kurz gesagt:
 - `hatchling` baut aus dem Projekt ein „richtiges“ Python-Paket (Wheel/Source-Tarball).

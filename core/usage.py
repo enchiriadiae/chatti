@@ -72,7 +72,7 @@ def prune_usage_log(keep_days: int | None = None, *, throttle: bool = True) -> i
         # keep_days aus Config (falls nicht explizit übergeben)
         if keep_days is None:
             try:
-                from config_loader import load_config_effective
+                from chatti.config_loader import load_config_effective
 
                 cfg = load_config_effective(uid=uid)
                 keep_days = int(cfg.get("usage_keep_days", 120) or 120)

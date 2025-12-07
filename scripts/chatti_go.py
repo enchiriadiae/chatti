@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
 
 import core.security as sec  # ← EIN Import, überall unten nur "sec." benutzen
 
-from config_loader import (
+from chatti.config_loader import (
     as_bool,
     load_config_effective,
     normalize_color,
@@ -537,7 +537,7 @@ def main() -> int:
     show_welcome()
 
     try:
-        from chatti_tui import ChattiTUI
+        from chatti.chatti_tui import ChattiTUI
     except KeyboardInterrupt:
         print("\nAbgebrochen.")
         return 130

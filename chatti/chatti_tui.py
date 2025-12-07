@@ -43,7 +43,7 @@ import core.security as sec
 # mask_secrets,
 # remove_user_entry_by_uid,
 # )
-from config_loader import (
+from chatti.config_loader import (
     as_bool,
     load_config_effective,
     normalize_color,
@@ -132,7 +132,7 @@ class ChattiTUI(App):
     }
     """
 
-    # ANSI-Colors from config_loader.normalize_color()
+    # ANSI-Colors from chatti.config_loader.normalize_color()
     _RED = normalize_color("red")
     _GREEN = normalize_color("green")
     _CYAN = normalize_color("cyan")
@@ -3325,7 +3325,7 @@ class ChattiTUI(App):
     def _write_user_model_conf(self, uid: str, model_id: str) -> None:
         """Schreibt das aktuelle Modell in die user-spezifische Konfiguration."""
         try:
-            from config_loader import write_conf_kv_scoped
+            from .config_loader import write_conf_kv_scoped
 
             write_conf_kv_scoped("default_model", model_id, uid=uid)
             self._log_block_wrapped("Model", f"✓ Modell gespeichert: {model_id}", color=self._GREEN)
