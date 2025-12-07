@@ -29,18 +29,28 @@ dependencies = [
   "pyperclip>=1.11",
 ]
 
-[project.scripts]
-chatti = "chatti.__main__:main"
-chatti-showman = "chatti.scripts.showman:main"
 
-[tool.hatch.build.targets.wheel]
-only-include = [
-  "chatti",
-  "docs",
+[project.scripts]
+chatti = "scripts.chatti_go:main"
+chatti-showman = "scripts.showman:main"
+
+
+# 🔹 GLOBAL: gilt für sdist und wheel
+[tool.hatch.build]
+include = [
+  "chatti/**",   # enthält jetzt auch chatti/docs/**
+  "core/**",
+  "scripts/**",
+  "tools/**",
+  "README.md",
+  "LICENSE",
 ]
 
+# 🔹 Wheel-spezifisch: welche Verzeichnisse als Python-Pakete behandelt werden
+[tool.hatch.build.targets.wheel]
+packages = ["chatti", "core", "scripts", "tools"]
 
-# Ruff (needed during developement):
+# Ruff
 [tool.ruff]
 line-length = 100
 target-version = "py312"

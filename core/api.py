@@ -28,7 +28,7 @@ from importlib.metadata import version as pkg_version
 from pathlib import Path
 from collections.abc import Callable
 
-from config_loader import (
+from chatti.config_loader import (
     as_bool,
     ensure_user_conf_skeleton,
     load_config_effective,

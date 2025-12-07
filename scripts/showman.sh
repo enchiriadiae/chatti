@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Verzeichnis des Scripts ermitteln
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-MANFILE="${SCRIPT_DIR}/../docs/man1/chatti.1"
+MANFILE="${SCRIPT_DIR}/../chatti/docs/man1/chatti.1"
 
 if [[ ! -f "$MANFILE" ]]; then
   echo "Manpage nicht gefunden: $MANFILE" >&2

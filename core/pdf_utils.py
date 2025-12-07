@@ -126,7 +126,7 @@ def pdf_pages_to_dataurls(path: str | Path, max_pages: int | None = 2, dpi: int 
         def _notify(_title: str, _msg: str, color: str | None = None) -> None:
             pass
 
-    from config_loader import load_config
+    from chatti.config_loader import load_config
 
     cfg = load_config("chatti.conf")
 
