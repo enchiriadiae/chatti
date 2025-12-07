@@ -17,6 +17,10 @@ Such dir dein Betriebssystem aus, scrolle zu dem Abschnitt und folge den Schritt
 > Chatti benötigt **Python 3.12 oder höher**.  
 > Unter Linux ist das Modul `venv` oft nicht automatisch installiert – du musst es ggf. nachrüsten.
 
+Wenn deine Python-Version zu alt ist (z.B. 3.8 oder 3.9), bricht pip die Installation von chatti-client mit einer Meldung wie
+requires a different Python: X.Y not in '>=3.12'
+ab. In dem Fall bitte zuerst Python aktualisieren.
+
 ```bash
 # 1. System-Pakete aktualisieren
 sudo apt update
