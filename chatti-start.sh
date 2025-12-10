@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# chatti-go — launcher for the Chatti TUI
+# chatti-start.sh — launcher for the Chatti TUI
 # Usage:
-#   ./chatti-go [args...]
+#   ./chatti-start.sh [args...]
+#
 # Notes:
 #   - Creates a local venv at ./.venv if missing
 #   - Installs requirements.txt if present
@@ -11,7 +12,7 @@
 # -e: abort on errors, -u: undefined vars => error, pipefail: catch pipe errors
 set -euo pipefail
 
-# Optional debug: CHATTI_DEBUG=1 ./chatti-go
+# Optional debug: CHATTI_DEBUG=1 ./chatti-start.sh
 if [[ "${CHATTI_DEBUG:-0}" == "1" ]]; then
   set -x
 fi
@@ -23,7 +24,7 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Find a usable Python ----------------------------------------------------
-# Allow override: CHATTIPY=/path/to/python ./chatti-go
+# Allow override: CHATTIPY=/path/to/python ./chatti-start.sh
 PYBIN="${CHATTIPY:-}"
 if [[ -z "$PYBIN" ]]; then
   if command -v python3 >/dev/null 2>&1; then
@@ -35,6 +36,24 @@ if [[ -z "$PYBIN" ]]; then
     echo "   Please install Python 3.12+ and retry." >&2
     exit 127
   fi
+fi
+
+
+# --- Version prüfen (mindestens 3.12) ---------------------------------------
+PYVER=$("$PYBIN" - << 'PY'
+import sys
+print(f"{sys.version_info.major}.{sys.version_info.minor}")
+PY
+)
+
+REQ_MAJOR=3
+REQ_MINOR=12
+MAJOR=${PYVER%%.*}
+MINOR=${PYVER#*.}
+
+if [ "$MAJOR" -lt "$REQ_MAJOR" ] || { [ "$MAJOR" -eq "$REQ_MAJOR" ] && [ "$MINOR" -lt "$REQ_MINOR" ]; }; then
+  echo "❌ Gefundene Python-Version ist $PYVER – benötigt wird mindestens 3.12."
+  exit 1
 fi
 
 # --- Ensure venv exists ------------------------------------------------------

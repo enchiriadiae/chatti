@@ -1,158 +1,102 @@
-# 💬 Chatti — Dein smarter Terminal-Client für ChatGPT
-Stand: früher Dezember 2025
+# Chatti – TUI-Client für OpenAI-Modelle
 
-**Chatti** ist ein leichtgewichtiger, textbasierter Client für die OpenAI-API.
-Er läuft vollständig im Terminal (TUI) und bringt eine klare, robuste Architektur mit:
-- 🔄 Live-Streaming von Antworten
-- 📦 Session-Management & History
-- 🧩 Attachments, Token-Zähler, Model-Switch
-- 🧠 Lokale Sicherheit (Fernet-Crypto, keine Cloud-Abhängigkeit, keine Klartextdaten auf dem Datenträger)
-- 🧑‍💻 Entwickelt in Python 3, vollständig Open-Source
+**Chatti** ist ein schlanker, textbasierter Client für OpenAI-Modelle mit Fokus auf
+lokale Sicherheit, verschlüsselte API-Key-Speicherung und gute Bedienbarkeit im Terminal.
 
+- Läuft unter **Linux**, **macOS** und **Windows**
+- Speichert API-Keys und Benutzerdaten **verschlüsselt** im Benutzerprofil
+- Nutzt eine Text-UI auf Basis von **textual**
+- Unterstützt mehrere Benutzer-Profile, History, Tickets & Dateianhänge
 
+---
 
-## 🚀 Schnellstart - Installation aus git
-👉🏽**Hinweis:**
-Eine ausführlichere Installationsanleitung liegt im (Projekt)-Order:
-/chatti/docs/installation-guide.md
+## Voraussetzungen
 
-Homepage/Wiki:
+- **Python 3.12 oder höher** (z. B. 3.12 oder 3.13)
+- Einen gültigen **OpenAI API-Key**
+- Internetzugang
+
+Wie man einen API-Key anlegt, steht in `chatti/docs/API-Keys.md`
+bzw. im Online-Wiki zum Projekt:
 https://wiki.tuxi.ddnss.de/wiki/ChatGPT-Client_-_Wiki
 
-👉🏽 Doku und Wiki entstehen zum Zeitpunkt dieser README.md und sind entsprechend unvollständig.
+---
 
-### 1️⃣ Repository klonen
+## Schnellstart (empfohlen für Linux & macOS)
+
+Für die meisten Nutzer:innen ist das **Komfort-Bundle mit Installationsscript** der einfachste Weg:
+
+1. Lade das ZIP-Bundle herunter (enthält u. a.):  
+   - `chatti_client-0.9.1-py3-none-any.whl`  
+   - `install-chatti.sh` / `uninstall-chatti.sh`  
+   - `README.txt`
+
+2. Entpacke das Archiv, z. B.:
+
+   ```bash
+   mkdir -p ~/Downloads/chatti-bundle
+   cd ~/Downloads/chatti-bundle
+   unzip chatti_client-0.9.1-bundle.zip
+   ```
+
+3. Stelle sicher, dass **Python 3.12+** vorhanden ist:
+
+   ```bash
+   python3 --version
+   ```
+
+4. Installation starten:
+
+   ```bash
+   chmod +x install-chatti.sh
+   ./install-chatti.sh
+   ```
+
+   Das Script:
+
+   - legt eine eigene virtuelle Umgebung unter `~/.local/share/chatti-venv` an,
+   - installiert dort alle Abhängigkeiten + Chatti,
+   - bietet dir an, automatisch einen PATH-Eintrag und eine Startdatei `~/bin/chatti` zu setzen.
+
+5. Chatti starten:
+
+   ```bash
+   chatti
+   ```
+
+   (Falls du PATH/Startdatei abgelehnt hast, kannst du auch direkt
+   `~/.local/share/chatti-venv/bin/chatti` aufrufen.)
+
+---
+
+## Entwicklermodus aus Git (kurz)
+
+Wenn du am Code arbeiten möchtest:
+
 ```bash
 git clone git@github.com:enchiriadiae/chatti.git
 cd chatti
+chmod +x chatti-start.sh
+./chatti-start.sh
 ```
 
-### 2️⃣ 🐍 Python & virtuelle Umgebung ([v]irtual [env]ironment) anlegen:
-**Chatti** benötigt Python 3.12 oder höher.
-Unter Linux ist das Modul venv oft nicht automatisch installiert – in diesem Fall nachrüsten.
+Das Script legt bei Bedarf eine lokale `.venv` an, installiert `requirements.txt`
+und startet dann `python -m scripts.chatti_go`.
 
-```bash
-# 1. System-Pakete aktualisieren
-sudo apt update
-sudo apt upgrade
+---
 
-# 2. Python, venv und pip installieren (Beispiel für Debian 12 / Trixie)
-sudo apt install -y python3.13 python3.13-venv python3-pip
+## Weitere Installationswege & Details
 
-# oder unter Windows:
-# .\.venv\Scripts\Activate.ps1
+Alle anderen Varianten (Wheel-/Tarball-Installation mit `pip`, Release-Builds mit
+`make-release.sh`, Dev-Setup unter Windows etc.) sind in
+`chatti/docs/installation-guide.md` ausführlich beschrieben.
 
-# 3. Projekt clonen
-git clone git@github.com:enchiriadiae/chatti.git
-cd chatti
+### Chattis Homepage (in work):
+https://wp.tuxi.ddnss.de/chatti-ein-client-fuer-chatgpt/
 
-# 4. Virtuelle Umgebung anlegen
-python3 -m venv .venv
-source .venv/bin/activate
+### Online-Wiki (in work):
+https://wiki.tuxi.ddnss.de/wiki/ChatGPT-Client_-_Wiki
 
-# 5. Abhängigkeiten installieren
-pip install -U pip
-pip install -r requirements.txt
-```
+---
 
-### 3️⃣ 💡 Danach kannst du Chatti in der virtuellen Umgebung direkt starten:
-
-```bash
-./chatti
-```
-
-Um Chatti wieder zu verlassen, in's Eingabefenster...
-```bash
-:q
-```
-...tippen. Danach die Tabulator-Taste und ENTER.
-Details zur Bedienung sieh Abschnitt "Kurzbedienung im Client" weiter unten.
-
-### 4️⃣ Testlauf
-```bash
-./scripts/release_smoke.sh
-```
-Wenn alles grün ist → 🎉 **Chatti** läuft!
-
-
-
-Kurz gesagt:
-- `hatchling` baut aus dem Projekt ein „richtiges“ Python-Paket (Wheel/Source-Tarball).
-- Damit kann Chatti später mit einem einzigen  
-  `pip install .`  
-  (oder irgendwann `pip install chatti-client`) installiert werden – inklusive aller Abhängigkeiten.
-- Der CLI-Befehl `chatti` wird dabei automatisch ins `$PATH` gelegt (über `[project.scripts]` in `pyproject.toml`).
-- `requirements.txt` bleibt vor allem für Entwickler*innen und reproduzierbare Dev-Umgebungen gedacht  
-  (z. B. `pip install -r requirements.txt`),  
-  während `pyproject.toml` + `hatchling` das saubere Packaging und die Verteilung übernehmen.
-
-### 5️⃣ Basics
-
-📂 Konfiguration & Datenpfade (Überblick)
-```
-~/.config/chatti-cli          # Konfiguration (z. B. chatti.conf, User-Einstellungen)
-~/.local/share/chatti-cli     # Laufzeitdaten & pro-User-Daten
-└── users/<UID>/...           # History, Support-Tickets, evtl. Attachments etc.
-```
-<UID> ist eine verschlüsselte User-ID (z. B. 1R_q0s9AevuWIXP0shoqaQ), unter der dein Profil geführt wird.
-In users/<UID>/support/ liegt z. B. der einfache „Ticket“-Mechanismus (eine Datei pro Ticket).
-Diese Verzeichnisse sind die zentrale Anlaufstelle, wenn du Backups oder Migrationen machen willst.
-
-⌨️ Kurzbedienung im Client
-
-Ein paar Basics, um loszulegen:
-Nachricht senden
-	•	Enter → Zeilenumbruch im Eingabefeld
-	•	TAB+Enter → Nachricht (Command, was auch immer) abschicken.
-
-Kommandos & Hilfe (alles mit TAB+Enter abschicken)
-	•	:help → kurze Übersicht
-	•	:commands → Liste aller verfügbaren Kommandos
-	•	:doctor → Diagnose (Modelle, Reachability, API-Status)
-	•	:change-openai-model → anderes Modell wählen und speichern
-	•	:show-openai-model → aktuell verwendetes Modell anzeigen
-	•	Kommandos schneller tippen
-	•	Alt/Option + → (Pfeil rechts) im Eingabefeld
-→ auto-completed :att… zu :attach-file usw.
-
-Clipboard (gesamter Chat)
-	•	Ctrl+Y → gesamten aktuellen Chatverlauf ins Clipboard kopieren
-	•	nutzt zuerst pyperclip (lokales Clipboard)
-	•	fällt bei SSH-Terminals auf OSC52 zurück
-	•	Hinweis: Das Standard-Terminal von macOS kann OSC52 nicht, mit iTerm2 funktioniert es sehr gut.
-
-Alle Details und weitere Features (Search-Mode, History, Boss-Mode, Attachments, Tickets, …) stehen im MANUAL.
-
-## 🧭 Nächste Schritte:
-
-🔧 Nützliche CLI-Optionen
-Chatti lässt sich auch direkt von der Kommandozeile steuern – ohne TUI:
-
-```bash
-# Kurzcheck: lebt mein API-Key & Modell?
-./chatti --verify
-```
-
-
-📘 Getting Started →
-Detaillierte Anleitung zur lokalen Entwicklungsumgebung
-(inkl. virtueller Python-Umgebung und Setup-Hinweisen).
-
-📗 MANUAL →
-Komplette Referenz mit allen Kommandos (:doctor, :attach-*, :whoami, …).
-
-📖 Manpage:
-Ist im Projekt integriert und über das Hilfsskript showman erreichbar.
-```bash
-./showman.sh
-```
-
-## Für Entwickler:
-🛠️ Entwicklungsrichtlinien
-•	Bitte keine Secrets (API-Keys, chatti.conf) committen!
-•	Alle persönlichen Daten liegen außerhalb des Projektordners.
-
-
-💻 Autoren & Mitwirkende
-Thomas Jung (enchiriadiae) — Konzept, Design, Code
-ChatGPT (GPT-5) — Dokumentation, Code-Assistenz, Architektur-Review
+Viel Spaß mit Chatti! 🐍💬
