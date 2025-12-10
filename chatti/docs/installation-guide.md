@@ -1,302 +1,256 @@
+# Installation Guide für Chatti
 
-# Installation Guide for Chatti
+Chatti läuft auf **Linux**, **macOS** und **Windows**.  
+Du brauchst überall:
 
-Chatti läuft auf allen drei großen Plattformen — **Linux**, **macOS** und **Windows**.  
-Dieses Dokument beschreibt die empfohlene Vorgehensweise für jede Umgebung und zeigt dir drei Wege, Chatti zu installieren:
+- **Python 3.12 oder höher** (z. B. 3.12 oder 3.13)
+- Einen Internetzugang (für die OpenAI-API)
+- Einen gültigen **OpenAI API-Key**
 
-- **Weg A:** Direkt aus dem Git-Projekt mit virtueller Umgebung (Entwickler-Modus)
-- **Weg B:** Installation aus dem fertigen Wheel-Paket (`.whl`)
-- **Weg C:** Installation aus dem Quellpaket (`.tar.gz`)
-
-Such dir dein Betriebssystem aus, scrolle zu dem Abschnitt und folge den Schritten.
-
----
-
-## 🐧 Linux (Debian, Ubuntu, Trixie)
-
-> Chatti benötigt **Python 3.12 oder höher**.  
-> Unter Linux ist das Modul `venv` oft nicht automatisch installiert – du musst es ggf. nachrüsten.
-
-Wenn deine Python-Version zu alt ist (z.B. 3.8 oder 3.9), bricht pip die Installation von chatti-client mit einer Meldung wie
-requires a different Python: X.Y not in '>=3.12'
-ab. In dem Fall bitte zuerst Python aktualisieren.
-
-```bash
-# 1. System-Pakete aktualisieren
-sudo apt update
-
-# 2. Python, venv und pip installieren (Beispiel für Debian 12 / 13)
-sudo apt install -y python3.13 python3.13-venv python3-pip python3-setuptools python3-wheel
-```
-
-👉🏽  **Hinweis:**  
-Ein Befehl wie
-```bash
-sudo apt install python3-pip
-```
-kann, je nach System, dazu führen, dass fehlende abhängige Python-Pakete nachinstalliert werden.  
-Der Paketmanager `apt` listet in solchen Fällen alle Abhängigkeiten auf und führt durch die Installation (Details weiter unten).
+> ℹ️ Wenn deine Python-Version zu alt ist (z. B. 3.8 oder 3.9), schlagen die Installationen mit einer Meldung wie  
+> `requires a different Python: X.Y not in '>=3.12'` fehl.  
+> In dem Fall: erst Python aktualisieren.
 
 ---
 
-### 🅰️ Weg A – Chatti direkt aus dem Git-Projekt starten (Entwickler-Modus)
+## Überblick: Installationswege
 
-Dieser Weg ist ideal, wenn du selbst am Code arbeiten möchtest.
+Es gibt diverse Möglichkeiten, Chatti zu installieren.
+Vier Alternativen sind im Folgenden beschrieben. Die erste ist am komfortabelsten.
 
-```bash
-# 3. Projekt klonen
-git clone git@github.com:enchiriadiae/chatti.git
-cd chatti
+1. **Weg 1 – Komfort-Bundle (empfohlen für Linux/macOS)**  
+   ZIP mit:
+   - `chatti_client-0.9.1-py3-none-any.whl`
+   - `install-chatti.sh` / `uninstall-chatti.sh`
+   - `README.txt`  
+   → Entpacken, Script starten, fertig.
 
-# 4. Virtuelle Umgebung anlegen
-python3 -m venv .venv
-source .venv/bin/activate
+2. **Weg 2 – Installation mit `pip` aus `dist/`**  
+   Du verwendest das fertige **Wheel** (`.whl`) oder das **Quellpaket** (`.tar.gz`) direkt mit `pip`.
 
-# 5. Abhängigkeiten in .venv installieren
-pip install -U pip
-pip install -r requirements.txt
-```
+3. **Weg 3 – Eigene Release-Kopie mit `make-release.sh`**  
+   Du baust dir ein eigenes „Source-Bundle“ (z. B. für Archiv/Backup).
 
-Jetzt kannst du Chatti direkt aus dem Projektordner starten, zum Beispiel mit:
+4. **Weg 4 – Entwicklermodus aus Git (mit `chatti-start.sh`)**  
+   Du clonest das Git-Repo, arbeitest im Quellcode und startest Chatti direkt daraus.
 
-```bash
-python -m scripts.chatti_go
-```
-
-(Alternativ kannst du dir ein kleines Startskript wie `./chatti_start` anlegen, das genau diesen Befehl ausführt.)
+> 🔮 **Später einmal** könnte noch ein „Weg 0 – Installation über PyPI“ dazukommen  
+> (`pip install chatti-client`). Das wäre dann ganz oben – an der Nummerierung hier müssten wir nichts ändern.
 
 ---
 
-### 🅱️ Weg B – Installation aus dem Wheel-Paket (`.whl`)
+## Weg 1 – Komfort-Bundle mit `install-chatti.sh` (empfohlen)
 
-Dieser Weg installiert Chatti wie ein normales Tool für deinen Benutzer.  
-Du brauchst die Datei:
+Dieser Weg ist für **Linux** und **macOS** gedacht und zielt auf Leute, die einfach nur:
+- Archiv entpacken,
+- ein Script starten,
+- und danach nur noch `chatti` eintippen wollen.
 
-- `dist/chatti_client-0.9.1-py3-none-any.whl`
+### 1.1 Vorbereitung
 
-Das Wheel kannst du dir z. B. aus dem Git-Projekt heraus mit `python -m build` erzeugen.
+Du bekommst ein ZIP über folgende Quellen:
+- im `dist/`-Ordner deines Projekts (Datei: chatti_client-0.9.1-bundle.zip)
+Alternativ über die Chattis Homepage:
+- https://wp.tuxi.ddnss.de/wp-content/uploads/2025/12/chatti_client-0.9.1-bundle.zip
+
+- `chatti_client-0.9.1-py3-none-any.whl`
+- `install-chatti.sh`
+- `uninstall-chatti.sh`
+- `README.txt`
+
+Entpacke das Archiv in ein Verzeichnis deiner Wahl, z. B.:
 
 ```bash
-# 1. In das Verzeichnis mit dem Wheel wechseln
+mkdir -p ~/Downloads/chatti-bundle
+cd ~/Downloads/chatti-bundle
+unzip chatti_client-0.9.1-bundle.zip
+```
+
+### 1.2 Voraussetzungen prüfen (Python-Version)
+
+Unter Linux/macOS:
+
+```bash
+python3 --version
+```
+
+- Wenn die Ausgabe z. B. `Python 3.13.x` ist → ✅ alles gut.
+- Wenn da etwas wie `Python 3.9.x` steht → vorher **Python 3.12+ installieren**.
+
+### 1.3 Installation mit `install-chatti.sh` (Linux/macOS)
+
+Im entpackten Bundle-Verzeichnis:
+
+```bash
+cd ~/Downloads/chatti-bundle
+
+# 1. Script ausführbar machen
+chmod +x install-chatti.sh
+
+# 2. Installation starten
+./install-chatti.sh
+```
+
+Was das Script macht:
+
+- sucht ein passendes **Python 3.12+**  
+- prüft, ob dein System-Python **PEP 668 / EXTERNALLY-MANAGED** markiert ist  
+  (z. B. bei neuen Debian/Ubuntu-Versionen)  
+- legt eine **eigene virtuelle Umgebung** an:
+
+  ```text
+  ~/.local/share/chatti-venv
+  ```
+
+- installiert darin:
+  - `pip` (aktuell)
+  - alle Abhängigkeiten
+  - das Wheel `chatti_client-0.9.1-py3-none-any.whl`
+- bietet dir an:
+  - deinen **PATH automatisch zu erweitern**, sodass `chatti` direkt gefunden wird
+  - eine **Startdatei `~/bin/chatti`** anzulegen
+
+Am Ende siehst du z. B.:
+
+```text
+✅ Installation abgeschlossen!
+   Du kannst Chatti jetzt so starten:
+     /home/deinname/.local/share/chatti-venv/bin/chatti
+
+   (Optional: Wenn PATH-Erweiterung/Startdatei aktiv ist, reicht einfach: chatti)
+```
+
+### 1.4 Starten von Chatti (nach Weg 1)
+
+- Mit PATH-Erweiterung/Startdatei:  
+
+  ```bash
+  chatti
+  ```
+
+- Ohne:  
+
+  ```bash
+  ~/.local/share/chatti-venv/bin/chatti
+  ```
+
+Hilfe:
+
+```bash
+chatti --help
+chatti --readme
+chatti --manual
+```
+
+### 1.5 Deinstallation mit `uninstall-chatti.sh`
+
+Später kannst du Chatti sauber entfernen:
+
+```bash
+cd ~/Downloads/chatti-bundle
+chmod +x uninstall-chatti.sh
+./uninstall-chatti.sh
+```
+
+Das Script:
+
+- entfernt die venv `~/.local/share/chatti-venv`
+- räumt die Startdatei `~/bin/chatti` auf (falls angelegt)
+- räumt PATH-Ergänzungen wieder aus `~/.bashrc` / `~/.zshrc`
+
+**Wichtig:**  
+Deine **persönlichen Chatti-Daten** (z. B. Konfiguration, Ticket-Historie) bleiben bewusst liegen:
+
+- `~/.config/chatti-cli/`
+- `~/.local/share/chatti-cli/`
+
+Wenn du wirklich alles löschen willst, kannst du diese Verzeichnisse manuell entfernen.
+
+---
+
+## Weg 2 – Installation mit `pip` aus `dist/` (Wheel oder Tarball)
+
+Dieser Weg ist etwas „technischer“, aber immer noch gut beherrschbar.  
+Du verwendest direkt:
+
+- das **Wheel**: `chatti_client-0.9.1-py3-none-any.whl`
+- oder das **Quellpaket**: `chatti_client-0.9.1.tar.gz`
+
+### 2.1 Linux / macOS
+
+Voraussetzung: **Python 3.12+** ist installiert.
+
+Wechsle in dein Projekt (oder dorthin, wo `dist/` liegt):
+
+```bash
 cd /pfad/zu/deinem/chatti-projekt
-
-# 2. Wheel installieren (ohne venv, nur für aktuellen Benutzer)
-python3 -m pip install --user dist/chatti_client-0.9.1-py3-none-any.whl
-
-# 3. Chatti starten
-chatti
+ls dist
+# → chatti_client-0.9.1-py3-none-any.whl
+#   chatti_client-0.9.1.tar.gz
 ```
 
-Wenn `chatti` nicht gefunden wird, fehlt vermutlich `~/.local/bin` in deinem `PATH`.  
-Füge es in `~/.bashrc` oder `~/.zshrc` hinzu:
+#### Variante 2a – mit Wheel (`.whl`)
+
+```bash
+python3 -m pip install --user dist/chatti_client-0.9.1-py3-none-any.whl
+```
+
+#### Variante 2b – mit Quellpaket (`.tar.gz`)
+
+```bash
+python3 -m pip install --user dist/chatti_client-0.9.1.tar.gz
+```
+
+💡 Der Effekt ist der gleiche, nur die Paketquelle unterscheidet sich.
+
+Danach:
+
+```bash
+chatti --help
+```
+
+Falls `chatti` nicht gefunden wird, fehlt vermutlich `~/.local/bin` im PATH.  
+In `~/.bashrc` oder `~/.zshrc` ergänzen:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
----
+#### Hinweis zu Debian 12/13 („Trixie“) & Co.
 
-### 🅾️ Weg C – Installation aus dem Quellpaket (`.tar.gz`)
+Neue Debian/Ubuntu-Systeme nutzen PEP 668 und können bei `pip install --user` meckern (EXTERNALLY-MANAGED).  
+In dem Fall nimm lieber **Weg 1 (install-chatti.sh)** – das Script baut automatisch eine eigene venv.
 
-Statt des Wheel kannst du auch das Quellpaket verwenden:
+### 2.2 Windows (PowerShell)
 
-- `dist/chatti_client-0.9.1.tar.gz`
+Voraussetzung:
 
-```bash
-# 1. In das Verzeichnis mit dem Archiv wechseln
-cd /pfad/zu/deinem/chatti-projekt
+- **Python 3.12+** von [python.org](https://www.python.org/downloads/)
+- Beim Setup: **„Add Python to PATH“** aktiviert
 
-# 2. Paket installieren
-python3 -m pip install --user dist/chatti_client-0.9.1.tar.gz
+Dann:
 
-# 3. Chatti starten
-chatti
-```
+```powershell
+cd C:\Pfad\zu\deinem\chatti-projekt
 
-Das Verhalten ist dasselbe wie bei Weg B – nur die Paketquelle unterscheidet sich.
+# Variante a – Wheel:
+python -m pip install dist\chatti_client-0.9.1-py3-none-any.whl
 
----
-
-### ⚠️ Hinweis zu Debian 13 „Trixie“
-
-Bei frisch installierten Systemen kann
-
-```bash
-sudo apt install python3-pip
-```
-
-eine **umfangreiche Liste zusätzlicher Abhängigkeiten** nach sich ziehen.  
-Das liegt daran, dass Debian 13 viele Python-Module modularisiert hat – jede Bibliothek steckt nun in einem eigenen Paket.
-
-👉 **Empfohlene Vorgehensweise:**
-
-1. Stelle sicher, dass die „universe“ / „contrib“ Repos aktiviert sind  
-   (in `/etc/apt/sources.list` oder `/etc/apt/sources.list.d/*.list`).
-2. Installiere alle relevanten Pakete in einem Rutsch:
-   ```bash
-   sudo apt update
-   sudo apt install -y \
-       python3.13 \
-       python3.13-venv \
-       python3-pip \
-       python3-setuptools \
-       python3-wheel
-   ```
-3. Wenn trotzdem Pakete fehlen, hilft oft:
-   ```bash
-   sudo apt --fix-broken install
-   ```
-   oder optional:
-   ```bash
-   sudo apt install python3-all python3-all-dev
-   ```
-
-> 💡 Alternativ kann `pip` auch direkt über Python installiert werden:
-> ```bash
-> python3 -m ensurepip --upgrade
-> ```
-
----
-
-## 🍎 Installation unter macOS
-
-> **Kurzfassung:**  
-> macOS bringt eine Python-Version mit, die meist **zu alt** ist.  
-> Für **Chatti** brauchst du mindestens **Python 3.12**, am besten aus **Homebrew**.
-
-```bash
-# 1. Homebrew installieren (falls noch nicht vorhanden)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# 2. Command Line Tools (Compiler, Header, etc.) installieren
-xcode-select --install
-
-# 3. Python 3.12 (oder neuer) via Homebrew installieren
-brew install python@3.12
-```
-
-Der Pfad zu Python kann z. B. so aussehen:
-
-- Apple Silicon (M1/M2/M3): `/opt/homebrew/bin/python3.12`
-- Intel-Macs: `/usr/local/bin/python3.12`
-
----
-
-### 🅰️ Weg A – Chatti aus dem Git-Projekt (mit venv)
-
-```bash
-# 4. Projekt klonen
-git clone git@github.com:enchiriadiae/chatti.git
-cd chatti
-
-# 5. Virtuelle Umgebung anlegen
-python3 -m venv .venv
-source .venv/bin/activate
-
-# 6. Abhängigkeiten installieren
-pip install -U pip
-pip install -r requirements.txt
+# Variante b – Tarball:
+python -m pip install dist\chatti_client-0.9.1.tar.gz
 ```
 
 Starten:
 
-```bash
-python -m scripts.chatti_go
-```
-
----
-
-### 🅱️ Weg B – Installation aus dem Wheel (`.whl`)
-
-Voraussetzung: Du hast das Wheel `dist/chatti_client-0.9.1-py3-none-any.whl` (z. B. aus dem Git-Projekt gebaut).
-
-```bash
-# 1. In das Verzeichnis mit dem Wheel wechseln
-cd /pfad/zu/deinem/chatti-projekt
-
-# 2. Paket für den aktuellen Benutzer installieren
-python3 -m pip install --user dist/chatti_client-0.9.1-py3-none-any.whl
-
-# 3. Chatti starten
-chatti
-```
-
-Falls `chatti` nicht gefunden wird, stelle sicher, dass `~/Library/Python/3.12/bin`  
-oder `~/.local/bin` (je nach Setup) in deinem `PATH` liegt.
-
----
-
-### 🅾️ Weg C – Installation aus dem Quellpaket (`.tar.gz`)
-
-```bash
-# 1. In das Verzeichnis mit dem Archiv wechseln
-cd /pfad/zu/deinem/chatti-projekt
-
-# 2. Paket installieren
-python3 -m pip install --user dist/chatti_client-0.9.1.tar.gz
-
-# 3. Chatti starten
-chatti
-```
-
----
-
-## 🪟 Installation unter Windows 10/11
-
-> **Kurzfassung:**  
-> Verwende die offizielle Python-Distribution von [python.org](https://www.python.org/downloads/).  
-> Chatti benötigt mindestens **Python 3.12**.
-
-### 1️⃣ Python einrichten
-
-1. Installer von python.org herunterladen (z. B. *Python 3.12.x Windows Installer*).
-2. Beim Setup unbedingt **„Add Python to PATH“** aktivieren.
-3. Nach der Installation in PowerShell prüfen:
-   ```powershell
-   python --version
-   pip --version
-   ```
-
----
-
-### 🅰️ Weg A – Chatti aus dem Git-Projekt (mit venv)
-
 ```powershell
-# 2. Repository klonen
-git clone git@github.com:enchiriadiae/chatti.git
-cd chatti
-
-# 3. Virtuelle Umgebung anlegen
-python -m venv .venv
-.\.venv\Scriptsctivate
-
-# 4. Abhängigkeiten installieren
-pip install -U pip
-pip install -r requirements.txt
-
-# 5. Chatti starten
-python -m scripts.chatti_go
-```
-
----
-
-### 🅱️ Weg B – Installation aus dem Wheel (`.whl`)
-
-Voraussetzung: Du hast die Datei `dist\chatti_client-0.9.1-py3-none-any.whl`.
-
-```powershell
-# 1. In das Verzeichnis mit dem Wheel wechseln
-cd C:\Pfad\zu\deinem\chatti-projekt
-
-# 2. Paket installieren
-python -m pip install dist\chatti_client-0.9.1-py3-none-any.whl
-
-# 3. Chatti starten
 chatti
+chatti --help
 ```
 
-Wenn `chatti` nicht gefunden wird, schließe die PowerShell und öffne ein neues Fenster  
-(damit der PATH neu eingelesen wird). Notfalls prüfen mit:
+Wenn `chatti` unbekannt ist:
+
+- neues Terminal öffnen (PATH neu einlesen),
+- oder prüfen mit:
 
 ```powershell
 where chatti
@@ -304,32 +258,146 @@ where chatti
 
 ---
 
-### 🅾️ Weg C – Installation aus dem Quellpaket (`.tar.gz`)
+## Weg 3 – Eigenes Release-Bundle mit `make-release.sh` (für Maintainer)
+
+Dieser Weg ist für dich gedacht, wenn du **selbst Releases bauen** willst  
+(z. B. um sie zu verschicken oder zu archivieren).
+
+Script: `scripts/make-release.sh`
+
+### 3.1 Nutzung
+
+Im Projekt-Root:
+
+```bash
+cd /pfad/zu/deinem/chatti-projekt
+chmod +x scripts/make-release.sh
+scripts/make-release.sh
+```
+
+Das Script:
+
+1. ermittelt die **Projektversion** aus `core/__init__.py` (`__version__ = "…"`)  
+2. macht einen kurzen **Import-Smoketest** (kann mit `--no-smoke` übersprungen werden)  
+3. baut unter `dist/release/` eine **vollständige Kopie** des Projekts:
+   - ohne `.git`, `.venv`, `__pycache__`, etc.  
+4. erzeugt:
+   - `dist/release/VERSION.txt`
+   - `dist/release/INSTALL.md` (kurze Install-Anleitung)
+   - bei Bedarf eine aktualisierte `requirements.txt`
+
+Am Ende hast du eine saubere, „geputzte“ Projektkopie.  
+Daraus kannst du z. B. wieder ein ZIP machen.
+
+---
+
+## Weg 4 – Entwicklermodus aus Git (mit `chatti-start.sh`)
+
+Dieser Weg ist ideal, wenn du:
+
+- am Code arbeiten willst
+- die Struktur von Chatti verstehen möchtest
+- Tests, Debugging etc. machen willst
+
+### 4.1 Git-Repo klonen
+
+```bash
+git clone git@github.com:enchiriadiae/chatti.git
+cd chatti
+```
+
+### 4.2 Entwicklerskript `chatti-start.sh`
+
+Im Repo liegt:
+
+- `chatti-start.sh` (im Projekt-Root)
+
+Das Script:
+
+- sucht eine passende Python-Version (3.12+),
+- legt bei Bedarf eine **lokale venv** unter `./.venv` an,
+- installiert `requirements.txt` in diese venv,
+- startet dann Chatti mit:
+
+  ```bash
+  python -m scripts.chatti_go
+  ```
+
+### 4.3 Nutzung (Linux/macOS)
+
+```bash
+cd /pfad/zu/deinem/chatti-clone
+chmod +x chatti-start.sh
+./chatti-start.sh
+```
+
+Optional mit Argumenten:
+
+```bash
+./chatti-start.sh --help
+./chatti-start.sh --doctor
+```
+
+Das Script sorgt dafür, dass:
+
+- Abhängigkeiten (textual, cryptography, openai, …) in der lokalen venv liegen,
+- dein System-Python unberührt bleibt.
+
+### 4.4 Windows: Dev-Setup (ohne `chatti-start.sh`)
+
+Unter Windows kannst du analog vorgehen, aber manueller:
 
 ```powershell
-# 1. In das Verzeichnis mit dem Archiv wechseln
-cd C:\Pfad\zu\deinem\chatti-projekt
+git clone git@github.com:enchiriadiae/chatti.git
+cd chatti
 
-# 2. Paket installieren
-python -m pip install dist\chatti_client-0.9.1.tar.gz
+python -m venv .venv
+.\.venv\Scriptsctivate
 
-# 3. Chatti starten
-chatti
+pip install -U pip
+pip install -r requirements.txt
+
+python -m scripts.chatti_go --help
 ```
 
 ---
 
-## 🔧 Typische Probleme & Tipps
+## Ausblick: Weg 0 – PyPI (noch Zukunftsmusik)
+
+Langfristig könnte Chatti auch über **PyPI** verteilt werden:
+
+```bash
+pip install chatti-client
+chatti
+```
+
+Das wäre dann vermutlich der „Weg 0“ / Standardweg.  
+Aktuell steht das noch auf der „später mal“-Liste – die obigen Wege 1–4 funktionieren unabhängig davon.
+
+---
+
+## Typische Probleme & Tipps
 
 - **`chatti: command not found` (Linux/macOS)**  
-  → Prüfen, ob `~/.local/bin` (oder der entsprechende Benutzer-Bin-Pfad) im `PATH` ist.
+  → Prüfen, ob `~/.local/bin` bzw. der venv-`bin`-Ordner im PATH ist.  
+  → Bei Weg 1 kümmert sich `install-chatti.sh` auf Wunsch darum.
 
-- **`python` startet alte Version (z. B. 3.9)**  
-  → Prüfen mit `python --version` und ggf. `python3` verwenden oder den Pfad explizit setzen.
+- **Python zu alt (`requires Python >= 3.12`)**  
+  → Python über Paketmanager (Linux) oder Installer (Windows/macOS) aktualisieren.
 
-- **Pakete fehlen trotz Installation**  
-  → Bei Mischinstallationen aus System-Python + Benutzer-Python hilft es oft, konsequent  
-    `python3 -m pip ...` (Linux/macOS) bzw. `python -m pip ...` (Windows) zu verwenden.
+- **PEP 668 / EXTERNALLY-MANAGED (Debian/Ubuntu)**  
+  → `pip install --user` im System-Python ist blockiert.  
+  → Nimm Weg 1 (`install-chatti.sh`), der automatisch eine venv in `~/.local/share/chatti-venv` anlegt.
 
-Sobald Chatti installiert ist (egal mit welchem Weg), läuft die Bedienung überall gleich:  
-Du startest mit `chatti` (oder im Dev-Modus mit `python -m scripts.chatti_go`) und arbeitest im TUI-Client weiter.
+- **Mehrere Python-Versionen parallel**  
+  → Unter Linux/macOS lieber explizit `python3` nutzen.  
+  → Unter Windows gilt: `python` aus dem offiziellen Installer verwenden.
+
+Sobald Chatti installiert ist – egal auf welchem Weg –  
+startest du ihn in der Regel einfach mit:
+
+```bash
+chatti
+```
+
+und arbeitest im Text-UI weiter.
