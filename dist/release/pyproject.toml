@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chatti-client"
+version = "0.9.1"
+description = "TUI-basiertes ChatGPT/OpenAI-Frontend (Chatti-Client)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+]
+
+authors = [
+  { name = "Thomas", email = "enchiriadis@netcologne.de" },
+]
+
+dependencies = [
+  "openai>=1.12,<2.0",
+  "textual>=0.58",
+  "cryptography>=42",
+  "requests>=2.32",
+  "PyPDF2>=3.0",
+  "pdf2image>=1.17",
+  "Pillow>=10.3",
+  "zxcvbn>=4.4.28",
+  "pyperclip>=1.11",
+]
+
+
+[project.scripts]
+chatti = "scripts.chatti_go:main"
+chatti-showman = "scripts.showman:main"
+
+
+# 🔹 GLOBAL: gilt für sdist und wheel
+[tool.hatch.build]
+include = [
+  "chatti/**",   # enthält jetzt auch chatti/docs/**
+  "core/**",
+  "scripts/**",
+  "tools/**",
+  "README.md",
+  "LICENSE",
+]
+
+# 🔹 Wheel-spezifisch: welche Verzeichnisse als Python-Pakete behandelt werden
+[tool.hatch.build.targets.wheel]
+packages = ["chatti", "core", "scripts", "tools"]
+
+# Ruff
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+fix = true
+
+[tool.ruff.lint]
+select = ["F401", "F821", "F841", "ARG", "UP"]

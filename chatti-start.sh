@@ -1,82 +1,158 @@
 #!/usr/bin/env bash
-# chatti-start.sh — launcher for the Chatti TUI
+
+
+# -----------------------------------------------------------------------------
+# README (macOS / Linux) — chatti-start.sh
+#
+# Start (im Projektordner):
+#   chmod +x ./chatti-start.sh
+#   ./chatti-start.sh
+#
+# Optional: bestimmtes Python erzwingen (z.B. Homebrew/pyenv):
+#   CHATTIPY=/opt/homebrew/bin/python3.13 ./chatti-start.sh
+#   # oder allgemein:
+#   CHATTIPY="$(command -v python3)" ./chatti-start.sh
+#
+# Debug-Ausgabe:
+#   CHATTI_DEBUG=1 ./chatti-start.sh
+#
+# Hinweis zu sudo:
+#   Den Launcher normalerweise OHNE sudo starten.
+#   Wenn du wirklich Root brauchst, Environment explizit durchreichen:
+#     sudo env CHATTIPY=/opt/homebrew/bin/python3.13 ./chatti-start.sh
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# README (macOS / Linux) — chatti-start.sh
+#
+# Start (im Projektordner):
+#   chmod +x ./chatti-start.sh
+#   ./chatti-start.sh
+#
+# Optional: bestimmtes Python erzwingen (z.B. Homebrew/pyenv):
+#   CHATTIPY=/opt/homebrew/bin/python3.13 ./chatti-start.sh
+#   # oder allgemein:
+#   CHATTIPY="$(command -v python3)" ./chatti-start.sh
+#
+# Debug-Ausgabe:
+#   CHATTI_DEBUG=1 ./chatti-start.sh
+#
+# Hinweis zu sudo:
+#   Den Launcher normalerweise OHNE sudo starten.
+#   Wenn du wirklich Root brauchst, Environment explizit durchreichen:
+#     sudo env CHATTIPY=/opt/homebrew/bin/python3.13 ./chatti-start.sh
+# -----------------------------------------------------------------------------
+
+
+# chatti-start.sh — launcher for the Chatti TUI (macOS/Linux)
+#
 # Usage:
 #   ./chatti-start.sh [args...]
 #
-# Notes:
-#   - Creates a local venv at ./.venv if missing
-#   - Installs requirements.txt if present
-#   - Executes scripts.chatti_go with all passed arguments
+# Optional:
+#   CHATTIPY=/path/to/python ./chatti-start.sh
+#   CHATTI_DEBUG=1 ./chatti-start.sh
 
-# --- Strict mode -------------------------------------------------------------
-# -e: abort on errors, -u: undefined vars => error, pipefail: catch pipe errors
 set -euo pipefail
+[[ "${CHATTI_DEBUG:-0}" == "1" ]] && set -x
 
-# Optional debug: CHATTI_DEBUG=1 ./chatti-start.sh
-if [[ "${CHATTI_DEBUG:-0}" == "1" ]]; then
-  set -x
-fi
-
-# Optional tighter default permissions for created files (pip caches etc.)
-# umask 077
-
-# --- Resolve project root ----------------------------------------------------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$ROOT/.venv"
+VENV_PY="$VENV_DIR/bin/python"
 
-# --- Find a usable Python ----------------------------------------------------
-# Allow override: CHATTIPY=/path/to/python ./chatti-start.sh
-PYBIN="${CHATTIPY:-}"
-if [[ -z "$PYBIN" ]]; then
-  if command -v python3 >/dev/null 2>&1; then
-    PYBIN="python3"
-  elif command -v python >/dev/null 2>&1; then
-    PYBIN="python"
+die() { echo "❌ $*" >&2; exit 1; }
+log() { echo "$*"; }
+
+hash_file() {
+  local f="$1"
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$f" | awk '{print $1}'
+  elif command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$f" | awk '{print $1}'
   else
-    echo "❌ No 'python3' or 'python' found in PATH." >&2
-    echo "   Please install Python 3.12+ and retry." >&2
-    exit 127
+    return 1
   fi
-fi
+}
 
+pick_python() {
+  if [[ -n "${CHATTIPY:-}" ]]; then
+    [[ -x "$CHATTIPY" ]] || die "CHATTIPY is set but not executable: $CHATTIPY"
+    echo "$CHATTIPY"; return 0
+  fi
 
-# --- Version prüfen (mindestens 3.12) ---------------------------------------
-PYVER=$("$PYBIN" - << 'PY'
+  # Prefer common Homebrew paths on macOS, but harmless elsewhere.
+  local candidates=(
+    "/opt/homebrew/bin/python3.13"
+    "/opt/homebrew/bin/python3"
+    "/usr/local/bin/python3.13"
+    "/usr/local/bin/python3"
+  )
+  for c in "${candidates[@]}"; do
+    [[ -x "$c" ]] && { echo "$c"; return 0; }
+  done
+
+  command -v python3 >/dev/null 2>&1 && { echo "python3"; return 0; }
+  command -v python  >/dev/null 2>&1 && { echo "python";  return 0; }
+
+  die "No 'python3' or 'python' found. Install Python 3.12+."
+}
+
+version_ok() {
+  local py="$1"
+  local pyver
+  pyver="$("$py" - <<'PY'
 import sys
 print(f"{sys.version_info.major}.{sys.version_info.minor}")
 PY
-)
+)"
+  local major="${pyver%%.*}"
+  local minor="${pyver#*.}"
 
-REQ_MAJOR=3
-REQ_MINOR=12
-MAJOR=${PYVER%%.*}
-MINOR=${PYVER#*.}
+  if [[ "$major" -lt 3 ]] || { [[ "$major" -eq 3 ]] && [[ "$minor" -lt 12 ]]; }; then
+    die "Gefundene Python-Version ist $pyver (via: $py) – benötigt wird mindestens 3.12."
+  fi
+}
 
-if [ "$MAJOR" -lt "$REQ_MAJOR" ] || { [ "$MAJOR" -eq "$REQ_MAJOR" ] && [ "$MINOR" -lt "$REQ_MINOR" ]; }; then
-  echo "❌ Gefundene Python-Version ist $PYVER – benötigt wird mindestens 3.12."
-  exit 1
-fi
+ensure_venv() {
+  local py="$1"
 
-# --- Ensure venv exists ------------------------------------------------------
-if [[ ! -d "$ROOT/.venv" ]]; then
-  echo "🐍 No .venv found in $ROOT — creating one..."
-  # Some distros require python3-venv, handle that gracefully
-  if ! "$PYBIN" -m venv "$ROOT/.venv" 2>/dev/null; then
-    echo "⚠️  Failed to create venv. On Debian/Ubuntu: sudo apt install python3-venv" >&2
-    # retry once to show the actual error
-    "$PYBIN" -m venv "$ROOT/.venv"
+  if [[ ! -d "$VENV_DIR" ]]; then
+    log "🐍 No .venv found — creating one with: $py"
+    "$py" -m venv "$VENV_DIR"
   fi
 
-  # Upgrade pip toolchain using the venv interpreter explicitly
-  "$ROOT/.venv/bin/python" -m pip install --upgrade pip setuptools wheel
-
-  # Install deps if requirements.txt is present
-  if [[ -f "$ROOT/requirements.txt" ]]; then
-    echo "📦 Installing requirements.txt…"
-    "$ROOT/.venv/bin/python" -m pip install -r "$ROOT/requirements.txt"
+  if [[ ! -x "$VENV_PY" ]]; then
+    log "⚠️  .venv seems broken — recreating…"
+    rm -rf "$VENV_DIR"
+    "$py" -m venv "$VENV_DIR"
   fi
-fi
 
-# --- Run the launcher inside venv -------------------------------------------
-# PYTHONUTF8=1 helps avoid locale/encoding weirdness on some systems
+  "$VENV_PY" -m pip install --upgrade pip setuptools wheel >/dev/null
+}
+
+install_requirements_if_needed() {
+  local req_file="$ROOT/requirements.txt"
+  local stamp="$VENV_DIR/.requirements.stamp"
+
+  [[ -f "$req_file" ]] || return 0
+
+  local new_hash old_hash=""
+  new_hash="$(hash_file "$req_file" || true)"
+  [[ -n "$new_hash" ]] || die "No shasum/sha256sum available to hash requirements.txt"
+
+  [[ -f "$stamp" ]] && old_hash="$(cat "$stamp" 2>/dev/null || true)"
+
+  if [[ "$new_hash" != "$old_hash" ]]; then
+    log "📦 Installing requirements.txt (changed)…"
+    "$VENV_PY" -m pip install -r "$req_file"
+    printf '%s' "$new_hash" > "$stamp"
+  fi
+}
+
+PYBIN="$(pick_python)"
+version_ok "$PYBIN"
+ensure_venv "$PYBIN"
+install_requirements_if_needed
+
 export PYTHONUTF8=1
-exec "$ROOT/.venv/bin/python" -m scripts.chatti_go "$@"
+exec "$VENV_PY" -m scripts.chatti_go "$@"

@@ -253,22 +253,12 @@ def api_selfcheck(
             max_output_tokens=16,  # robust gegen Modelle mit Mindestanforderung
         )
 
-#         text = getattr(resp, "output_text", "") or ""
-#         if not text and getattr(resp, "output", None):
-#             for item in resp.output:
-#                 for part in getattr(item, "content", []) or []:
-#                     if getattr(part, "type", "") == "output_text":
-#                         text += getattr(part, "text", "")
-
-        text = (getattr(resp, "output_text", None) or "").strip()
-        if not text:
-            out = getattr(resp, "output", None) or []
-            chunks = []
-            for item in out:
-                for part in (getattr(item, "content", None) or []):
+        text = getattr(resp, "output_text", "") or ""
+        if not text and getattr(resp, "output", None):
+            for item in resp.output:
+                for part in getattr(item, "content", []) or []:
                     if getattr(part, "type", "") == "output_text":
-                        chunks.append(getattr(part, "text", ""))
-                        text = "\n".join(chunks).strip()
+                        text += getattr(part, "text", "")
 
         if text.strip():
             report["nonstream_ok"] = True
