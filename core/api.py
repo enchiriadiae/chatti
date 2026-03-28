@@ -1340,7 +1340,11 @@ def chat_once(
             for ev in stream:
                 ev_type = getattr(ev, "type", "") or ""
                 # Text-Deltas einsammeln (verschiedene Eventnamen abdecken)
-                if "output_text.delta" in ev_type:
+                # Änderung am 26. März 2026, Anfang
+                # -> Auf Textausgaben beschränken.
+                # if "output_text.delta" in ev_type:
+                if ev_type == "response.output_text.delta":
+                # Änderung am 26. März 2026, Ende
                     d = getattr(ev, "delta", "") or ""
                 elif "delta" in ev_type:
                     d = getattr(ev, "delta", "") or getattr(ev, "text", "") or ""

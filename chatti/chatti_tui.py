@@ -177,7 +177,7 @@ class ChattiTUI(App):
 
         self.chat_view: Log | None = None
         self.input: Input | None = None
-        
+
         # Clipboard-Copy
         self._log_buffer: list[str] = []
 
@@ -443,14 +443,18 @@ class ChattiTUI(App):
                 continue
             # Direkte Pfade oder file://-URLs
             if line.startswith(("file://", "/", "~")):
-                out.append(str(normalize_user_path(line)))
-                continue
+                try:
+                    out.append(str(normalize_user_path(line)))
+                except Exception:
+                    pass
+
+            return out
             # Auch „komisch“ aussehende Strings könnten Pfade sein → versuchen
             try:
-                out.append(str(normalize_user_path(line)))
+               out.append(str(normalize_user_path(line)))
             except Exception:
-                # kein Pfad → Rohtext zurückgeben (der Aufrufer entscheidet)
-                out.append(line)
+               # kein Pfad → Rohtext zurückgeben (der Aufrufer entscheidet)
+               out.append(line)
         return out
 
     async def on_paste(self, event: events.Paste) -> None:
@@ -463,6 +467,7 @@ class ChattiTUI(App):
         text = " ".join(shlex.quote(p) for p in paths)
         self.set_focus(self.input)
         self._insert_into_input(text + " ")
+
 
     def _debug_key_event(self, ev) -> None:
         try:
@@ -701,6 +706,7 @@ class ChattiTUI(App):
                     break_long_words=False,
                     break_on_hyphens=False,
                     replace_whitespace=False,
+                    drop_whitespace=False
                 ) or [""]
                 for chunk in chunks:
                     self._log_write_line(paint(chunk))
@@ -715,6 +721,7 @@ class ChattiTUI(App):
                     break_long_words=False,
                     break_on_hyphens=False,
                     replace_whitespace=False,
+                    drop_whitespace=False
                 ) or [""]
                 for chunk in chunks:
                     self._log_write_line(paint(chunk))
@@ -726,6 +733,7 @@ class ChattiTUI(App):
                 break_long_words=False,
                 break_on_hyphens=False,
                 replace_whitespace=False,
+                drop_whitespace=False
             )
 
             if wrapped:
@@ -1127,10 +1135,10 @@ class ChattiTUI(App):
     def _copy_via_osc52(self, text: str) -> bool:
         """Versucht, Text via OSC52 ("Operating System Command"", Steuerzeichen 52))
         ins lokale Terminal-Clipboard zu kopieren.
-    
+
         Funktioniert in vielen Terminals (iTerm2, einige xterm-Varianten).
         Klappt besonders gut bei SSH-Sessions, weil der Text direkt beim Client landet.
-        
+
         Does NOT work in MacOS-Standard-Terminal!! :-((
         """
         try:
@@ -1148,13 +1156,10 @@ class ChattiTUI(App):
 
             # Direkt an den *echten* stdout (FD 1) schreiben, Textual umgehen:
             os.write(1, seq.encode("ascii", "replace"))
-    
+
             return True
         except Exception:
             return False
-
-
-
 
     # History nur, wenn Eingabe fokussiert
     async def on_key(self, event) -> None:
@@ -3609,8 +3614,8 @@ class SecretPrompt(ModalScreen[str | None]):
     def action_cancel(self) -> None:
         self.dismiss(None)
 
-    def on_input_submitted(self, ev: Input.Submitted) -> None:
-        self.dismiss(ev.value or "")
+    #def on_input_submitted(self, ev: Input.Submitted) -> None:
+    #    self.dismiss(ev.value or "")
 
 
 ###################################################
